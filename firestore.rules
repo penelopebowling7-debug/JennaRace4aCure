@@ -66,5 +66,9 @@ service cloud.firestore {
     match /checklist/{docId} {
       allow read, write: if isApproved();
     }
+
+    match /manualFunds/{docId} {
+      allow read, write: if isApproved();
+    }
   }
 }

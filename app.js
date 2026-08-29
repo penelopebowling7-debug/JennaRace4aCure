@@ -16,11 +16,13 @@ var ICONS = {
   trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>',
   copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+  money: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5v11M15.2 9.3c0-1.4-1.4-2.3-3.2-2.3s-3.2 1-3.2 2.3c0 3 6.4 1.5 6.4 4.4 0 1.4-1.4 2.3-3.2 2.3s-3.2-1-3.2-2.4"/></svg>',
   google: '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.1 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.4 5.7c4.3-4 6.8-9.9 6.8-17.4z"/><path fill="#FBBC05" d="M10.5 19.3A14.5 14.5 0 0 0 9.5 24c0 1.7.3 3.3.9 4.8l-7.9 6.1A24 24 0 0 1 0 24c0-3.9.9-7.5 2.6-10.8l7.9 6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.4-5.7c-2.1 1.4-4.7 2.2-7.6 2.2-6.3 0-11.6-4.1-13.6-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>'
 };
 
 var TABS = [
   { id: "overview", label: "Overview", icon: "overview" },
+  { id: "money", label: "Money Raised", icon: "money" },
   { id: "attendees", label: "Attendees & Tickets", icon: "tickets" },
   { id: "donations", label: "Donations & Prizes", icon: "gift" },
   { id: "activities", label: "Fundraising Activities", icon: "flag" },
@@ -116,7 +118,7 @@ try { db.enablePersistence({ synchronizeTabs: true }).catch(function () {}); } c
 
 /* ============================= state ============================= */
 
-var STATE = { settings: DEFAULT_SETTINGS, attendees: [], donations: [], activities: [], checklist: [] };
+var STATE = { settings: DEFAULT_SETTINGS, attendees: [], donations: [], activities: [], checklist: [], manualFunds: [] };
 var accessEmails = [];
 var currentUser = null;
 var isApproved = false;
@@ -180,12 +182,14 @@ function computeStats() {
   var activityRevenueTarget = STATE.activities.reduce(function (sum, a) { return sum + (Number(a.targetRevenue) || 0); }, 0);
   var checklistDone = STATE.checklist.filter(function (c) { return c.status === "done"; }).length;
   var checklistTotal = STATE.checklist.length;
-  var totalRaised = revenuePaid + activityRevenueActual;
+  var manualFundsTotal = STATE.manualFunds.reduce(function (sum, m) { return sum + (Number(m.amount) || 0); }, 0);
+  var totalRaised = revenuePaid + activityRevenueActual + manualFundsTotal;
   return {
     ticketsSold: ticketsSold, revenuePaid: revenuePaid, revenuePending: revenuePending,
     donationValueSecured: donationValueSecured, donationsConfirmedCount: donationsConfirmedCount,
     activityRevenueActual: activityRevenueActual, activityRevenueTarget: activityRevenueTarget,
-    checklistDone: checklistDone, checklistTotal: checklistTotal, totalRaised: totalRaised
+    checklistDone: checklistDone, checklistTotal: checklistTotal,
+    manualFundsTotal: manualFundsTotal, totalRaised: totalRaised
   };
 }
 
@@ -330,6 +334,12 @@ function startApp() {
     renderAll();
   }));
 
+  unsubscribers.push(col("manualFunds").onSnapshot(function (snap) {
+    STATE.manualFunds = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+      .sort(function (a, b) { return (a.dateAdded || "").localeCompare(b.dateAdded || ""); });
+    renderAll();
+  }));
+
   unsubscribers.push(col("checklist").onSnapshot(function (snap) {
     if (snap.empty) {
       seedChecklist();
@@ -448,6 +458,7 @@ function renderFooter() {
 function renderTabPanel() {
   switch (ui.tab) {
     case "overview": return renderOverview();
+    case "money": return renderMoneyRaised();
     case "attendees": return renderAttendees();
     case "donations": return renderDonations();
     case "activities": return renderActivities();
@@ -527,6 +538,59 @@ function renderAccessPanel() {
     '<div>' + rows + "</div>" +
     '<form id="add-access-form"><input type="email" name="email" placeholder="name@email.com" required><button type="submit" class="btn sm">' + icon("plus") + " Add</button></form>" +
   "</div></details>";
+}
+
+/* ============================= render: money raised ============================= */
+
+function renderMoneyRaised() {
+  var s = computeStats();
+  var price = Number(STATE.settings.ticketPrice) || 0;
+  var rows = STATE.manualFunds.map(renderManualFundRow).join("");
+  if (!STATE.manualFunds.length) {
+    rows = '<tr><td colspan="5" class="empty-row">No manual entries yet. Log cash, bank transfers or any money raised that is not already tracked through Attendees or Fundraising Activities.</td></tr>';
+  }
+
+  return '<div class="tab-panel">' +
+    '<div class="section-head"><div><div class="eyebrow">Money raised</div><h2>' + money(s.totalRaised) + ' raised so far</h2><p>Set your ticket price here, then track every dollar raised, whether it came through ticket sales, a fundraising activity, or a manual entry below.</p></div></div>' +
+
+    '<div class="kpi-grid">' +
+      '<div class="kpi"><div class="kpi-label">Ticket price</div><div class="kpi-value">' + money(price) + '</div><div class="kpi-sub">per ticket, set below</div></div>' +
+      '<div class="kpi success"><div class="kpi-label">Ticket revenue (paid)</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + ' pending from invited or attending guests</div></div>' +
+      '<div class="kpi"><div class="kpi-label">Activity revenue</div><div class="kpi-value">' + money(s.activityRevenueActual) + '</div><div class="kpi-sub">from Fundraising Activities</div></div>' +
+      '<div class="kpi gold"><div class="kpi-label">Manually logged</div><div class="kpi-value">' + money(s.manualFundsTotal) + '</div><div class="kpi-sub">' + STATE.manualFunds.length + ' ' + (STATE.manualFunds.length === 1 ? "entry" : "entries") + '</div></div>' +
+      '<div class="kpi success"><div class="kpi-label">Total raised</div><div class="kpi-value">' + money(s.totalRaised) + '</div><div class="kpi-sub">Ticket revenue + activity revenue + manual entries</div></div>' +
+    "</div>" +
+
+    '<details class="panel" open><summary>Ticket price <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
+      '<div class="form-grid">' +
+        '<div class="field"><label>Ticket price ($)</label><input type="number" min="0" step="1" data-settings-field="ticketPrice" value="' + esc(price) + '"></div>' +
+        '<div class="field"><label>Ticket goal</label><input type="number" min="1" step="1" data-settings-field="ticketGoal" value="' + esc(STATE.settings.ticketGoal) + '"></div>' +
+      "</div></div></details>" +
+
+    '<details class="panel" open><summary>Log money raised <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
+      '<p class="muted" style="font-size:13px;margin:0 0 8px">Use this for cash collected on the day, bank transfers, or any lump sum that is not already tied to a specific attendee or activity.</p>' +
+      '<form id="add-manual-fund-form" class="form-grid">' +
+        '<div class="field"><label>Source *</label><input name="source" required placeholder="e.g. Cash tin, bank transfer"></div>' +
+        '<div class="field"><label>Amount ($)</label><input name="amount" type="number" min="0" step="0.01" value="0"></div>' +
+        '<div class="field"><label>Date</label><input name="dateAdded" type="date" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
+        '<div class="field"><label>Notes</label><input name="notes" placeholder="Optional"></div>' +
+        '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add entry</button></div>" +
+      "</form></div></details>" +
+
+    '<div class="table-wrap"><table class="data"><thead><tr>' +
+      "<th>Source</th><th>Amount</th><th>Date</th><th>Notes</th><th></th>" +
+    "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
+  "</div>";
+}
+
+function renderManualFundRow(m) {
+  return '<tr data-collection="manualFunds" data-id="' + m.id + '">' +
+    '<td><input data-field="source" value="' + esc(m.source) + '"></td>' +
+    '<td class="num"><input data-field="amount" type="number" min="0" step="0.01" value="' + esc(m.amount) + '" style="width:90px;text-align:right"></td>' +
+    '<td><input data-field="dateAdded" type="date" value="' + esc(m.dateAdded) + '" style="width:150px"></td>' +
+    '<td><input data-field="notes" value="' + esc(m.notes) + '"></td>' +
+    '<td><button type="button" class="icon-btn" data-action="remove" title="Remove entry">' + icon("trash") + "</button></td>" +
+  "</tr>";
 }
 
 /* ============================= render: attendees ============================= */
@@ -968,6 +1032,17 @@ function onRootSubmit(e) {
     addDoc("donations", { business: business, contact: f2.contact.value.trim(), item: f2.item.value.trim(), value: Number(f2.value.value) || 0, status: f2.status.value, thanked: false, notes: "" });
     toast(business + " added to your donation tracker.");
     f2.reset();
+    return;
+  }
+
+  if (e.target.id === "add-manual-fund-form") {
+    e.preventDefault();
+    var f6 = e.target;
+    var source = f6.source.value.trim();
+    if (!source) return;
+    addDoc("manualFunds", { source: source, amount: Number(f6.amount.value) || 0, dateAdded: f6.dateAdded.value || new Date().toISOString().slice(0, 10), notes: f6.notes.value.trim() });
+    toast(source + " added.");
+    f6.reset();
     return;
   }
 
