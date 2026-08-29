@@ -7,10 +7,14 @@ rules_version = '2';
 // config/access. Jenna (or any other approved editor) manages that list
 // from inside the app itself, under Overview -> Manage access.
 //
+// The very first person to ever sign in becomes the first approved editor
+// automatically (see the "allow create" rule below), so there is no manual
+// Firestore console step needed to bootstrap access. After that, everyone
+// else is added from inside the app by someone already approved.
+//
 // Paste this whole file into: Firebase console -> Firestore Database ->
-// Rules tab -> replace everything -> Publish. See README.md for the
-// full walkthrough, including how to create the config/access document
-// for the very first time.
+// Rules tab -> replace everything -> Publish. See README.md for the full
+// walkthrough.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -27,12 +31,20 @@ service cloud.firestore {
       return signedIn() && request.auth.token.email in approvedEmails();
     }
 
-    // Anyone signed in can read the access list (so the app can tell
-    // them "you're not approved yet"). Only an approved editor can
-    // change who's on it.
+    // Anyone signed in can read the access list (so the app can tell them
+    // "you're not approved yet"). The document can be CREATED by a signed-in
+    // user only while it doesn't exist yet, and only seeding themselves as
+    // the sole approved email, that's what lets the very first person in
+    // with no admin step. Once it exists, only an already-approved editor
+    // can change who's on the list.
     match /config/access {
       allow read: if signedIn();
-      allow write: if isApproved();
+      allow create: if signedIn()
+        && !exists(/databases/$(database)/documents/config/access)
+        && request.resource.data.emails is list
+        && request.resource.data.emails.size() == 1
+        && request.resource.data.emails[0] == request.auth.token.email;
+      allow update: if isApproved();
     }
 
     match /settings/{docId} {

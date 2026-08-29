@@ -253,8 +253,21 @@ auth.onAuthStateChanged(function (user) {
     return;
   }
   renderGateChecking();
+  var bootstrapAttempted = false;
   var unsubAccess = db.collection("config").doc("access").onSnapshot(function (doc) {
-    accessEmails = (doc.exists && doc.data().emails) || [];
+    if (!doc.exists) {
+      // Nobody has ever signed in before. The first person to arrive becomes
+      // the first approved editor automatically, see firestore.rules: this
+      // write is only allowed while the document truly doesn't exist yet.
+      accessEmails = [];
+      if (!bootstrapAttempted) {
+        bootstrapAttempted = true;
+        db.collection("config").doc("access").set({ emails: [(user.email || "").toLowerCase()] })
+          .catch(function (err) { console.error(err); renderGateError(); });
+      }
+      return;
+    }
+    accessEmails = doc.data().emails || [];
     var approvedNow = accessEmails.indexOf((user.email || "").toLowerCase()) > -1;
     if (approvedNow && !isApproved) {
       isApproved = true;

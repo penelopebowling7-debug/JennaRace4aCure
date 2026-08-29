@@ -50,23 +50,7 @@ dashboard, same data, updating in real time for everyone.
 3. Choose **Production mode** (not test mode), then pick a location close to you
    (any is fine, this doesn't change cost). Click **Enable**.
 
-## Part 4: Create the approved-access list (important, do this before anything else)
-
-This is the one manual step that has to happen before anyone, including you, can
-sign in successfully.
-
-1. Still in **Firestore Database**, click **Start collection**.
-2. Collection ID: type `config` and click **Next**.
-3. Document ID: type `access` (not auto-ID, type it exactly as `access`).
-4. Add a field:
-   - Field name: `emails`
-   - Field type: **array**
-   - Add each email address you want to start with as its own array item, one per
-     line, lower case (yours, Jenna's, and anyone else you already know should have
-     access). You can always add more people later from inside the app.
-5. Click **Save**.
-
-## Part 5: Paste in the security rules
+## Part 4: Paste in the security rules
 
 1. Still in **Firestore Database**, click the **Rules** tab.
 2. Delete everything in the box.
@@ -76,7 +60,14 @@ sign in successfully.
 This is what actually enforces "only approved emails can read or write," the app
 itself can't do that on its own, the rules are what make it real.
 
-## Part 6: Register a web app and get your config
+You do **not** need to manually create anything in the Firestore data browser.
+The very first person to sign in through the app (that'll be you) is
+automatically made the first approved editor, the rules you just pasted are
+what allow that to happen safely, and only for the very first person. Everyone
+after that gets added from inside the app, see "Adding or removing editors
+later" below.
+
+## Part 5: Register a web app and get your config
 
 1. Click the gear icon next to **Project Overview** (top left) -> **Project settings**.
 2. Scroll down to **Your apps**, click the **</>** (web) icon.
@@ -90,7 +81,7 @@ itself can't do that on its own, the rules are what make it real.
    "add the Firebase SDK" instructions, that's already done in this project's
    `index.html`).
 
-## Part 7: Put it on GitHub Pages
+## Part 6: Put it on GitHub Pages
 
 1. Go to [github.com](https://github.com) and sign in.
 2. Click the **+** in the top right -> **New repository**. Name it something like
@@ -110,15 +101,17 @@ itself can't do that on its own, the rules are what make it real.
 8. Wait a minute or two, then refresh that Pages settings screen. You'll see
    "Your site is live at..." with your URL. That's the link you share.
 
-## Part 8: Test it
+## Part 7: Test it
 
 1. Open the link. You should see a sign-in screen.
-2. Sign in with a Google account whose email you added to the `emails` list in
-   Part 4.
-3. You should land straight in the event dashboard.
-4. Try opening the same link in a different browser (or ask someone else on the
-   list to open it) and add something on one side, you should see it appear on the
-   other within a second or two.
+2. Sign in with your own Google account, the one you used to set up this Firebase
+   project. As the very first person to sign in, you'll automatically become the
+   first approved editor, there's nothing else to click.
+3. You should land straight in the event dashboard. From here, add anyone else
+   (Jenna, committee members) through **Overview -> Manage access**.
+4. Try opening the same link in a different browser (or ask someone you just
+   approved to open it) and add something on one side, you should see it appear on
+   the other within a second or two.
 
 ---
 
@@ -139,11 +132,24 @@ this.
 
 ## If something goes wrong
 
+**You already tried an earlier version of these instructions that asked you to
+manually create a `config/access` document, and now you can't sign in at all:**
+this is the most likely issue if you're reading this after already attempting
+setup. The self-bootstrap rule in Part 4 only works while `config/access`
+doesn't exist yet, so a document you created by hand (especially if a field was
+typed wrong, e.g. the wrong field name, or emails saved as a plain string
+instead of an array) will block it permanently, nobody, including you, can get
+in or fix it from inside the app. The fix: in the Firebase console, go to
+**Firestore Database**, open the **config** collection, open the **access**
+document, and delete it (the trash icon). Make sure `firestore.rules` (Part 4)
+is the current version from this folder and has been published. Then reload
+your GitHub Pages link and sign in again, you'll be auto-approved as the first
+editor.
+
 **"Missing or insufficient permissions" error, or the app seems stuck on "Checking
-your access":** almost always means either the security rules haven't been
-published yet (Part 5), or the `config/access` document doesn't exist yet or
-doesn't have your email in it exactly as you sign in with (Part 4). Emails are
-matched exactly, so double check for typos and that it's lower case.
+your access":** means the security rules haven't been published yet (Part 4), or
+you have `firebase-config.js` values that don't match your actual Firebase
+project (Part 5). Double check both.
 
 **Sign-in popup closes immediately or does nothing:** check that Google is enabled
 as a sign-in provider (Part 2), and that you're testing on the actual GitHub Pages
