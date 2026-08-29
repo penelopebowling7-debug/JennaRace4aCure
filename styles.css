@@ -212,6 +212,7 @@
   .task-row .pill{flex:0 0 auto}
   .task-owner{flex:0 1 110px;min-width:90px}
   .task-due{flex:0 1 150px;min-width:132px;color:var(--ink-soft)}
+  .task-due.overdue{color:var(--critical-ink);font-weight:800}
   .task-row select.status-select{flex:0 0 auto}
   .task-row .icon-btn{flex:0 0 auto;margin-left:auto}
   @media(max-width:560px){.task-row{padding:12px 16px}.task-text{flex-basis:100%;order:1}.task-check{order:0}

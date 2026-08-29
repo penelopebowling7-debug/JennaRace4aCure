@@ -795,31 +795,70 @@ function renderActivityRow(a) {
 
 /* ============================= render: checklist ============================= */
 
+var CHECKLIST_TIMELINE_GROUPS = [
+  { key: "overdue", label: "Overdue", pillClass: "critical" },
+  { key: "this-week", label: "Due this week", pillClass: "warning" },
+  { key: "this-month", label: "Due this month", pillClass: "gold" },
+  { key: "later", label: "Later", pillClass: "neutral" },
+  { key: "no-date", label: "No date set", pillClass: "neutral" },
+  { key: "done", label: "Completed", pillClass: "success" }
+];
+
+function taskIsOverdue(c) {
+  if (c.status === "done" || !c.dueDate) return false;
+  var now = new Date();
+  var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var d = new Date(c.dueDate + "T00:00:00");
+  return !isNaN(d.getTime()) && d < todayMid;
+}
+
+function groupChecklistByTimeline() {
+  var now = new Date();
+  var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var groups = { overdue: [], "this-week": [], "this-month": [], later: [], "no-date": [], done: [] };
+  STATE.checklist.forEach(function (c) {
+    if (c.status === "done") { groups.done.push(c); return; }
+    if (!c.dueDate) { groups["no-date"].push(c); return; }
+    var d = new Date(c.dueDate + "T00:00:00");
+    if (isNaN(d.getTime())) { groups["no-date"].push(c); return; }
+    var diffDays = Math.round((d - todayMid) / 86400000);
+    if (diffDays < 0) groups.overdue.push(c);
+    else if (diffDays <= 7) groups["this-week"].push(c);
+    else if (diffDays <= 28) groups["this-month"].push(c);
+    else groups.later.push(c);
+  });
+  ["overdue", "this-week", "this-month", "later"].forEach(function (k) {
+    groups[k].sort(function (a, b) { return (a.dueDate || "").localeCompare(b.dueDate || ""); });
+  });
+  groups.done.sort(function (a, b) { return (b.dueDate || "").localeCompare(a.dueDate || ""); });
+  return groups;
+}
+
 function renderChecklist() {
   var s = computeStats();
   var pctAll = pct(s.checklistDone, s.checklistTotal);
-  var blocks = CHECKLIST_CATEGORIES.map(function (cat) {
-    var items = STATE.checklist.filter(function (c) { return c.category === cat; });
-    var done = items.filter(function (c) { return c.status === "done"; }).length;
-    var p = pct(done, items.length);
+  var groups = groupChecklistByTimeline();
+  var blocks = CHECKLIST_TIMELINE_GROUPS.map(function (g) {
+    var items = groups[g.key];
+    if (!items.length) return "";
     var rows = items.map(renderChecklistRow).join("");
     return '<div class="cat-block">' +
-      '<div class="cat-head"><h3>' + esc(cat) + '</h3><div class="cat-progress"><div class="bar-track"><div class="bar-fill" style="width:' + p + '%"></div></div><span class="muted" style="font-size:12.5px;white-space:nowrap">' + done + "/" + items.length + "</span></div></div>" +
+      '<div class="cat-head"><h3>' + esc(g.label) + '</h3><span class="pill ' + g.pillClass + '">' + items.length + (items.length === 1 ? " task" : " tasks") + '</span></div>' +
       rows +
     "</div>";
   }).join("");
+  if (!blocks) blocks = '<p class="muted" style="font-size:13px">No tasks yet. Add your first one below.</p>';
 
   return '<div class="tab-panel">' +
-    '<div class="section-head"><div><div class="eyebrow">Event checklist</div><h2>' + pctAll + '% of the plan complete</h2><p>A starter checklist for a race day fundraiser, grouped by when it needs doing. Tick things off, assign an owner, or add your own tasks.</p></div></div>' +
+    '<div class="section-head"><div><div class="eyebrow">Event checklist</div><h2>' + pctAll + '% of the plan complete</h2><p>Your to-do list, ordered by what\'s due soonest so it is always clear what needs doing next. Set a due date on any task to slot it into the right timeframe.</p></div></div>' +
     '<div class="bar-track"><div class="bar-fill success" style="width:' + pctAll + '%"></div></div>' +
 
     '<details class="panel"><summary>Add a task <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
       '<form id="add-task-form" class="form-grid">' +
         '<div class="field"><label>Task *</label><input name="task" required placeholder="What needs to happen"></div>' +
-        '<div class="field"><label>Category</label><select name="category">' + CHECKLIST_CATEGORIES.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + "</option>"; }).join("") + "</select></div>" +
-        '<div class="field"><label>Timing</label><input name="timing" placeholder="e.g. 4-6 weeks before"></div>' +
-        '<div class="field"><label>Owner</label><input name="owner" placeholder="Who is doing it"></div>' +
         '<div class="field"><label>Date due</label><input name="dueDate" type="date"></div>' +
+        '<div class="field"><label>Owner</label><input name="owner" placeholder="Who is doing it"></div>' +
+        '<div class="field"><label>Category</label><select name="category">' + CHECKLIST_CATEGORIES.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + "</option>"; }).join("") + "</select></div>" +
         '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add task</button></div>" +
       "</form></div></details>" +
 
@@ -828,12 +867,13 @@ function renderChecklist() {
 }
 
 function renderChecklistRow(c) {
+  var overdue = taskIsOverdue(c);
   return '<div class="task-row' + (c.status === "done" ? " done" : "") + '" data-collection="checklist" data-id="' + c.id + '">' +
     '<input type="checkbox" class="task-check" data-field="status-toggle"' + (c.status === "done" ? " checked" : "") + ' title="Mark done">' +
     '<input class="task-text" data-field="task" value="' + esc(c.task) + '">' +
-    '<span class="pill neutral" style="white-space:nowrap">' + esc(c.timing || "") + "</span>" +
+    '<span class="pill neutral" style="white-space:nowrap">' + esc(c.category || "") + "</span>" +
     '<input class="task-owner" data-field="owner" placeholder="Owner" value="' + esc(c.owner) + '">' +
-    '<input type="date" class="task-due" data-field="dueDate" title="Date due" value="' + esc(c.dueDate) + '">' +
+    '<input type="date" class="task-due' + (overdue ? " overdue" : "") + '" data-field="dueDate" title="Date due" value="' + esc(c.dueDate) + '">' +
     '<select data-field="status" class="status-select ' + esc(c.status) + '">' +
       Object.keys(CHECKLIST_STATUS_LABELS).map(function (k) { return '<option value="' + k + '"' + (c.status === k ? " selected" : "") + ">" + CHECKLIST_STATUS_LABELS[k] + "</option>"; }).join("") +
     "</select>" +
@@ -1062,7 +1102,7 @@ function onRootSubmit(e) {
     var f4 = e.target;
     var task = f4.task.value.trim();
     if (!task) return;
-    addDoc("checklist", { category: f4.category.value, task: task, timing: f4.timing.value.trim(), owner: f4.owner.value.trim(), dueDate: f4.dueDate.value, status: "not-started", notes: "" });
+    addDoc("checklist", { category: f4.category.value, task: task, owner: f4.owner.value.trim(), dueDate: f4.dueDate.value, status: "not-started", notes: "" });
     toast("Task added.");
     f4.reset();
     return;
