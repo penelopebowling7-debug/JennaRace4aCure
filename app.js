@@ -58,7 +58,7 @@ var DONATION_TIPS = [
 
 var EMAIL_TEMPLATE = "Hi [Contact Name],\n\nMy name is Jenna and I'm organising Racing for a Cure, a race day fundraiser on Saturday 17 October in support of breast cancer research, care and support. My mum is currently living with breast cancer, and turning my 40th birthday into something that gives back means the world to me.\n\nWe're running a raffle and a few fun fundraising activities on the day, and I would love to include [Business Name] among our supporters. Would you be open to donating a prize, product, voucher or experience?\n\nIn return, we're happy to promote your business on our event signage, social media and in our thank you messages to guests on the day.\n\nIf you're able to help, I can arrange pickup or drop off at a time that suits you, and we will provide a receipt for your records.\n\nThank you so much for considering it. Every contribution, big or small, brings us closer to a cure.\n\nWarmly,\nJenna";
 
-var ATTENDEE_STATUS_LABELS = { pending: "Pending", paid: "Paid", comp: "Complimentary" };
+var ATTENDEE_STATUS_LABELS = { invited: "Invited", attending: "Attending", paid: "Paid", comp: "Complimentary" };
 var DONATION_STATUS_LABELS = { "to-contact": "To contact", asked: "Asked", confirmed: "Confirmed", received: "Received", declined: "Declined" };
 var ACTIVITY_STATUS_LABELS = { planning: "Planning", confirmed: "Confirmed", complete: "Complete" };
 var CHECKLIST_STATUS_LABELS = { "not-started": "Not started", "in-progress": "In progress", done: "Done" };
@@ -173,7 +173,7 @@ function icon(name) { return ICONS[name] || ""; }
 function computeStats() {
   var ticketsSold = STATE.attendees.reduce(function (sum, a) { return sum + (Number(a.tickets) || 0); }, 0);
   var revenuePaid = STATE.attendees.reduce(function (sum, a) { return a.status === "paid" ? sum + (Number(a.amountPaid) || 0) : sum; }, 0);
-  var revenuePending = STATE.attendees.reduce(function (sum, a) { return a.status === "pending" ? sum + (Number(a.amountPaid) || (Number(a.tickets) || 0) * (Number(STATE.settings.ticketPrice) || 0)) : sum; }, 0);
+  var revenuePending = STATE.attendees.reduce(function (sum, a) { return (a.status === "invited" || a.status === "attending") ? sum + (Number(a.amountPaid) || (Number(a.tickets) || 0) * (Number(STATE.settings.ticketPrice) || 0)) : sum; }, 0);
   var donationValueSecured = STATE.donations.reduce(function (sum, d) { return (d.status === "confirmed" || d.status === "received") ? sum + (Number(d.value) || 0) : sum; }, 0);
   var donationsConfirmedCount = STATE.donations.filter(function (d) { return d.status === "confirmed" || d.status === "received"; }).length;
   var activityRevenueActual = STATE.activities.reduce(function (sum, a) { return sum + (Number(a.actualRevenue) || 0); }, 0);
@@ -561,7 +561,7 @@ function renderAttendees() {
         '<div class="field"><label>Name *</label><input name="name" required placeholder="Guest name"></div>' +
         '<div class="field"><label>Email</label><input name="email" type="email" placeholder="guest@email.com"></div>' +
         '<div class="field"><label>Tickets</label><input name="tickets" type="number" min="1" value="1"></div>' +
-        '<div class="field"><label>Status</label><select name="status"><option value="pending">Pending</option><option value="paid">Paid</option><option value="comp">Complimentary</option></select></div>' +
+        '<div class="field"><label>Status</label><select name="status"><option value="invited">Invited</option><option value="attending">Attending</option><option value="paid">Paid</option><option value="comp">Complimentary</option></select></div>' +
         '<div class="field"><label>Notes</label><input name="notes" placeholder="Dietary needs, table, etc"></div>' +
         '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add attendee</button></div>" +
       "</form></div></details>" +
@@ -576,8 +576,9 @@ function renderAttendees() {
       '<input type="search" id="attendee-search" placeholder="Search attendees" value="' + esc(ui.attendeeSearch) + '">' +
       '<select id="attendee-filter">' +
         '<option value="all"' + (ui.attendeeFilter === "all" ? " selected" : "") + ">All statuses</option>" +
+        '<option value="invited"' + (ui.attendeeFilter === "invited" ? " selected" : "") + ">Invited</option>" +
+        '<option value="attending"' + (ui.attendeeFilter === "attending" ? " selected" : "") + ">Attending</option>" +
         '<option value="paid"' + (ui.attendeeFilter === "paid" ? " selected" : "") + ">Paid</option>" +
-        '<option value="pending"' + (ui.attendeeFilter === "pending" ? " selected" : "") + ">Pending</option>" +
         '<option value="comp"' + (ui.attendeeFilter === "comp" ? " selected" : "") + ">Complimentary</option>" +
       "</select>" +
     "</div>" +
@@ -754,6 +755,7 @@ function renderChecklist() {
         '<div class="field"><label>Category</label><select name="category">' + CHECKLIST_CATEGORIES.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + "</option>"; }).join("") + "</select></div>" +
         '<div class="field"><label>Timing</label><input name="timing" placeholder="e.g. 4-6 weeks before"></div>' +
         '<div class="field"><label>Owner</label><input name="owner" placeholder="Who is doing it"></div>' +
+        '<div class="field"><label>Date due</label><input name="dueDate" type="date"></div>' +
         '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add task</button></div>" +
       "</form></div></details>" +
 
@@ -767,6 +769,7 @@ function renderChecklistRow(c) {
     '<input class="task-text" data-field="task" value="' + esc(c.task) + '">' +
     '<span class="pill neutral" style="white-space:nowrap">' + esc(c.timing || "") + "</span>" +
     '<input class="task-owner" data-field="owner" placeholder="Owner" value="' + esc(c.owner) + '">' +
+    '<input type="date" class="task-due" data-field="dueDate" title="Date due" value="' + esc(c.dueDate) + '">' +
     '<select data-field="status" class="status-select ' + esc(c.status) + '">' +
       Object.keys(CHECKLIST_STATUS_LABELS).map(function (k) { return '<option value="' + k + '"' + (c.status === k ? " selected" : "") + ">" + CHECKLIST_STATUS_LABELS[k] + "</option>"; }).join("") +
     "</select>" +
@@ -788,7 +791,7 @@ function parseBulkAttendees(text) {
     var tickets = parseInt(parts[2], 10);
     if (!tickets || tickets < 1) tickets = 1;
     var statusRaw = (parts[3] || "").toLowerCase();
-    var status = statusRaw === "paid" ? "paid" : (statusRaw === "comp" || statusRaw === "complimentary" ? "comp" : "pending");
+    var status = statusRaw === "paid" ? "paid" : (statusRaw === "comp" || statusRaw === "complimentary" ? "comp" : (statusRaw === "attending" ? "attending" : "invited"));
     out.push({
       name: name, email: email, tickets: tickets, status: status,
       amountPaid: status === "paid" ? tickets * (Number(STATE.settings.ticketPrice) || 0) : 0,
@@ -984,7 +987,7 @@ function onRootSubmit(e) {
     var f4 = e.target;
     var task = f4.task.value.trim();
     if (!task) return;
-    addDoc("checklist", { category: f4.category.value, task: task, timing: f4.timing.value.trim(), owner: f4.owner.value.trim(), status: "not-started", notes: "" });
+    addDoc("checklist", { category: f4.category.value, task: task, timing: f4.timing.value.trim(), owner: f4.owner.value.trim(), dueDate: f4.dueDate.value, status: "not-started", notes: "" });
     toast("Task added.");
     f4.reset();
     return;
