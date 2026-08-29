@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register - Jenna's Racing for a Cure</title>
+<meta name="description" content="Register your details and request tickets for Jenna's Racing for a Cure, a race day fundraiser in support of breast cancer research, care and support.">
+
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&family=Playfair+Display:ital,wght@1,600;1,700&display=swap">
+<link rel="stylesheet" href="styles.css?v=3">
+</head>
+<body>
+
+<div id="toast-wrap"></div>
+
+<div class="gate-wrap">
+  <div class="gate-card" id="register-card" style="max-width:480px;text-align:left">
+    <div class="brand-mark" style="margin:0 auto 14px"><img src="ribbon-header.png" alt=""></div>
+    <div id="register-content" style="text-align:center">Loading...</div>
+  </div>
+</div>
+
+<!-- Firebase (compat SDK, works with plain <script> tags, no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+<!-- Your Firebase project's own config, see README.md -->
+<script src="firebase-config.js"></script>
+
+<script>
+(function () {
+"use strict";
+
+var db = firebase.firestore();
+var content = document.getElementById("register-content");
+var settings = null;
+
+function esc(s) {
+  if (s === null || s === undefined) return "";
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+function money(n) {
+  n = Number(n) || 0;
+  return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  var d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function toast(msg) {
+  var wrap = document.getElementById("toast-wrap");
+  if (!wrap) return;
+  var el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(function () { el.remove(); }, 3200);
+}
+
+function renderForm() {
+  var price = Number(settings.ticketPrice) || 0;
+  content.style.textAlign = "left";
+  content.innerHTML =
+    '<h1 style="text-align:center">' + esc(settings.eventName || "Racing for a Cure") + '</h1>' +
+    '<p class="muted" style="text-align:center">' + esc(fmtDate(settings.eventDate)) + '</p>' +
+    '<p style="text-align:center">' + esc(settings.tagline || "") + '</p>' +
+    '<div class="divider"></div>' +
+    '<p class="muted" style="font-size:13.5px">Register your details below to request tickets, ' + money(price) + ' each. Someone from the team will be in touch with payment details and confirmation.</p>' +
+    '<form id="register-form" class="form-grid" style="margin-top:14px">' +
+      '<div class="field" style="grid-column:1/-1"><label>Name *</label><input name="name" required placeholder="Your name"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Email *</label><input name="email" type="email" required placeholder="you@email.com"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Phone</label><input name="phone" type="tel" placeholder="04xx xxx xxx"></div>' +
+      '<div class="field"><label>Tickets</label><input name="tickets" type="number" min="1" max="20" value="1"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Notes</label><input name="notes" placeholder="Accessibility needs, plus one, etc"></div>' +
+      '<div class="field" style="grid-column:1/-1"><button type="submit" class="btn" style="width:100%;justify-content:center">Request tickets</button></div>' +
+    "</form>";
+  document.getElementById("register-form").addEventListener("submit", onSubmit);
+}
+
+function renderThankYou(name, tickets) {
+  var price = Number(settings.ticketPrice) || 0;
+  var total = price * tickets;
+  var paymentInfo = settings.paymentInfo || "The organiser will be in touch with payment details.";
+  content.innerHTML =
+    '<h1 style="text-align:center">Thanks, ' + esc(name) + '!</h1>' +
+    '<p style="text-align:center">Your request for ' + tickets + (tickets === 1 ? " ticket" : " tickets") + ' (' + money(total) + ') has been sent through.</p>' +
+    '<div class="divider"></div>' +
+    '<p class="muted" style="font-size:13px;margin-bottom:6px">To complete your booking, please pay using:</p>' +
+    '<div class="template-box">' + esc(paymentInfo) + '</div>' +
+    '<p class="muted" style="font-size:12.5px;margin-top:10px">Please use <strong>' + esc(name) + '</strong> as your payment reference so we can match it to your registration.</p>';
+}
+
+function onSubmit(e) {
+  e.preventDefault();
+  var f = e.target;
+  var name = f.name.value.trim();
+  var email = f.email.value.trim();
+  if (!name || !email) return;
+  var tickets = Math.max(1, Math.min(20, parseInt(f.tickets.value, 10) || 1));
+  var btn = f.querySelector("button[type=submit]");
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+
+  var ref = db.collection("attendees").doc();
+  var data = {
+    id: ref.id,
+    name: name,
+    email: email,
+    phone: f.phone.value.trim(),
+    tickets: tickets,
+    status: "invited",
+    amountPaid: 0,
+    notes: f.notes.value.trim(),
+    dateAdded: new Date().toISOString().slice(0, 10)
+  };
+  ref.set(data).then(function () {
+    renderThankYou(name, tickets);
+  }).catch(function (err) {
+    console.error(err);
+    toast("Something went wrong, please try again.");
+    btn.disabled = false;
+    btn.textContent = "Request tickets";
+  });
+}
+
+db.collection("settings").doc("event").get().then(function (doc) {
+  settings = doc.exists ? doc.data() : {};
+  renderForm();
+}).catch(function (err) {
+  console.error(err);
+  content.innerHTML = '<h1 style="text-align:center">Something went wrong</h1><p class="muted" style="text-align:center">Could not load event details, please try again shortly.</p>';
+});
+})();
+</script>
+</body>
+</html>
