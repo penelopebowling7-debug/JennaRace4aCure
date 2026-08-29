@@ -58,7 +58,7 @@ var DONATION_TIPS = [
   "Send a thank you and a receipt promptly once you receive the donation."
 ];
 
-var EMAIL_TEMPLATE = "Hi [Contact Name],\n\nMy name is Jenna and I'm organising Racing for a Cure, a race day fundraiser on Saturday 17 October in support of breast cancer research, care and support. My mum is currently living with breast cancer, and turning my 40th birthday into something that gives back means the world to me.\n\nWe're running a raffle and a few fun fundraising activities on the day, and I would love to include [Business Name] among our supporters. Would you be open to donating a prize, product, voucher or experience?\n\nIn return, we're happy to promote your business on our event signage, social media and in our thank you messages to guests on the day.\n\nIf you're able to help, I can arrange pickup or drop off at a time that suits you, and we will provide a receipt for your records.\n\nThank you so much for considering it. Every contribution, big or small, brings us closer to a cure.\n\nWarmly,\nJenna";
+var EMAIL_TEMPLATE = "Hi [Contact Name],\n\nMy name is Jenna. My mum has bravely fought breast cancer, and is now facing another battle with it. She's always taught me it's better to give than to receive, so for my 40th birthday this year, instead of gifts, I'm holding Racing for a Cure on Saturday 17 October, a race day fundraiser for breast cancer research, care and support.\n\nThis isn't a professional event, it's something personal I care about more than words can really say, and I'm reaching out to businesses I admire, like [Business Name], to help make it special. Would you be open to donating a prize, product, voucher or experience for our raffle and fundraising activities on the day?\n\nIn return, I'd love to shout out [Business Name] on our event signage, social media and in our thank you messages to guests.\n\nIf you're able to help, I can arrange pickup or drop-off at a time that suits you, and I'll make sure you get a receipt for your records.\n\nThank you for reading this far, it genuinely means more than you know. Every contribution, big or small, brings us closer to a cure, and closer to my mum.\n\nWith love and gratitude,\nJenna";
 
 var ATTENDEE_STATUS_LABELS = { invited: "Invited", attending: "Attending", paid: "Paid", comp: "Complimentary" };
 var DONATION_STATUS_LABELS = { "to-contact": "To contact", asked: "Asked", confirmed: "Confirmed", received: "Received", declined: "Declined" };
@@ -84,8 +84,8 @@ var DEFAULT_CHECKLIST = [
   { category: "Marketing & Promotion", task: "Post a reminder and countdown in the two weeks before the event", timing: "1-2 weeks before" },
   { category: "Guest Management", task: "Start selling tickets and logging attendees in the app", timing: "8+ weeks before" },
   { category: "Guest Management", task: "Send confirmation emails to everyone who buys a ticket", timing: "Ongoing" },
-  { category: "Guest Management", task: "Track dietary requirements and any accessibility needs", timing: "2-4 weeks before" },
-  { category: "Guest Management", task: "Prepare name badges and a table seating plan", timing: "1-2 weeks before" },
+  { category: "Guest Management", task: "Track accessibility needs for guests", timing: "2-4 weeks before" },
+  { category: "Guest Management", task: "Prepare name badges", timing: "1-2 weeks before" },
   { category: "Guest Management", task: "Send a reminder email one week before the event", timing: "1-2 weeks before" },
   { category: "Guest Management", task: "Prepare a welcome pack or programme for guests", timing: "1-2 weeks before" },
   { category: "Fundraising Setup", task: "Choose which fundraising activities will run on the day", timing: "8+ weeks before" },
@@ -626,7 +626,7 @@ function renderAttendees() {
         '<div class="field"><label>Email</label><input name="email" type="email" placeholder="guest@email.com"></div>' +
         '<div class="field"><label>Tickets</label><input name="tickets" type="number" min="1" value="1"></div>' +
         '<div class="field"><label>Status</label><select name="status"><option value="invited">Invited</option><option value="attending">Attending</option><option value="paid">Paid</option><option value="comp">Complimentary</option></select></div>' +
-        '<div class="field"><label>Notes</label><input name="notes" placeholder="Dietary needs, table, etc"></div>' +
+        '<div class="field"><label>Notes</label><input name="notes" placeholder="Accessibility needs, plus one, etc"></div>' +
         '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add attendee</button></div>" +
       "</form></div></details>" +
 
