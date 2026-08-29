@@ -12,12 +12,12 @@
 */
 
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY_HERE",
-  authDomain: "PASTE_YOUR_PROJECT_ID_HERE.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID_HERE",
-  storageBucket: "PASTE_YOUR_PROJECT_ID_HERE.appspot.com",
-  messagingSenderId: "PASTE_YOUR_SENDER_ID_HERE",
-  appId: "PASTE_YOUR_APP_ID_HERE"
+  apiKey: "AIzaSyCO0TMeiJvDZ0Zx6PSUy4QElaX-aPgjypc",
+  authDomain: "jenna-race-4-a-cure.firebaseapp.com",
+  projectId: "jenna-race-4-a-cure",
+  storageBucket: "jenna-race-4-a-cure.firebasestorage.app",
+  messagingSenderId: "913680161780",
+  appId: "1:913680161780:web:1f76c070830cda9c02b7a1"
 };
 
 firebase.initializeApp(firebaseConfig);
