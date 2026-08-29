@@ -231,12 +231,14 @@ function removeApprovedEmail(email) {
 
 function signIn() {
   var provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(function (err) {
-    if (err && err.code === "auth/popup-closed-by-user") return;
-    toast("Sign in did not work, please try again.");
-    console.error(err);
-  });
+  auth.signInWithRedirect(provider);
 }
+
+auth.getRedirectResult().catch(function (err) {
+  if (err && err.code === "auth/popup-closed-by-user") return;
+  toast("Sign in did not work, please try again.");
+  console.error(err);
+});
 
 function signOutNow() {
   stopListeners();
