@@ -11,22 +11,78 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&family=Playfair+Display:ital,wght@1,600;1,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Lato:ital,wght@0,400;0,700;0,900;1,400&family=Playfair+Display:ital,wght@0,900;1,600;1,700&display=swap">
 <link rel="stylesheet" href="styles.css?v=5">
+<style>
+  .invite-hero{background:
+      radial-gradient(circle at 18% 8%, var(--rose-100), transparent 55%),
+      radial-gradient(circle at 88% 18%, var(--rose-50), transparent 50%),
+      linear-gradient(180deg, var(--rose-50), var(--bg));
+    padding:44px 20px 46px;text-align:center}
+  .invite-ribbon{width:64px;height:80px;margin:0 auto 12px;filter:drop-shadow(0 4px 10px rgba(156,55,103,.25))}
+  .invite-ribbon img{width:100%;height:100%;object-fit:contain;display:block}
+  .invite-eyebrow{font-size:12px;letter-spacing:.2em;font-weight:800;color:var(--rose-700);text-transform:uppercase}
+  .invite-subtitle{font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--ink-soft);text-transform:uppercase;
+    margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px}
+  .invite-subtitle::before,.invite-subtitle::after{content:"";width:26px;height:1px;background:var(--rose-300)}
+  .invite-script{font-family:'Great Vibes',cursive;font-size:42px;color:var(--rose-600);line-height:1;margin-top:10px}
+  .invite-title{font-family:var(--font-display);font-weight:900;font-style:normal;font-size:52px;color:var(--rose-900);
+    line-height:.95;margin-top:2px}
+  .invite-title .heart{color:var(--rose-500);font-size:.55em;vertical-align:middle;margin-left:4px}
+  .invite-support{margin-top:16px;font-size:12px;letter-spacing:.08em;font-weight:700;color:var(--ink-soft);text-transform:uppercase}
+  .invite-support strong{display:block;color:var(--rose-700);font-size:15px;margin-top:3px;letter-spacing:.04em}
+  .invite-divider{display:flex;align-items:center;justify-content:center;gap:12px;margin:18px auto;max-width:220px}
+  .invite-divider .line{flex:1;height:1px;background:var(--rose-300)}
+  .invite-divider svg{width:20px;height:20px;color:var(--rose-500);flex:0 0 auto}
+  .invite-tagline{font-style:italic;font-family:var(--font-display);color:var(--ink-soft);font-size:15px}
+  .invite-date{display:inline-flex;align-items:center;gap:10px;margin-top:22px}
+  .invite-date svg{width:32px;height:32px;color:var(--rose-600);flex:0 0 auto}
+  .invite-date .d-wrap{text-align:left}
+  .invite-date .d-day{font-size:11px;letter-spacing:.12em;font-weight:800;color:var(--ink-soft);text-transform:uppercase}
+  .invite-date .d-date{font-family:var(--font-display);font-weight:900;font-size:19px;color:var(--rose-900);line-height:1.15}
+  .invite-features{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:24px;max-width:380px;margin-left:auto;margin-right:auto}
+  .invite-feature{display:flex;flex-direction:column;align-items:center;gap:6px;width:74px}
+  .invite-feature svg{width:24px;height:24px;color:var(--rose-600)}
+  .invite-feature span{font-size:9.5px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-soft);line-height:1.3}
+  .invite-note{margin-top:22px;font-size:12.5px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;
+    gap:6px;max-width:300px;margin-left:auto;margin-right:auto;line-height:1.5}
+  .invite-note svg{width:14px;height:14px;color:var(--rose-500);flex:0 0 auto}
+  .invite-banner{margin-top:32px;background:linear-gradient(155deg,var(--rose-700),var(--rose-900) 70%);color:#fff;padding:16px 20px}
+  .invite-banner .line1{font-size:10.5px;letter-spacing:.16em;font-weight:800;text-transform:uppercase}
+  .invite-banner .line2{font-family:'Great Vibes',cursive;font-size:22px;margin-top:2px}
+  .ticket-holder-block{border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:12px 14px;background:var(--surface-2)}
+  .ticket-holder-block .th-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--rose-600);margin-bottom:8px}
+</style>
 </head>
 <body>
 
 <div id="toast-wrap"></div>
 
 <div class="register-page">
-  <div class="register-hero">
-    <div class="brand-mark"><img src="ribbon-header.png" alt=""></div>
-    <h1 id="hero-title">Loading...</h1>
-    <p class="tagline" id="hero-tagline"></p>
-    <div id="hero-countdown-wrap"></div>
+  <div class="invite-hero">
+    <div class="invite-ribbon"><img src="ribbon-header.png" alt=""></div>
+    <div class="invite-eyebrow">You're invited</div>
+    <div class="invite-subtitle">To a day of</div>
+    <div class="invite-script">Racing for a</div>
+    <div class="invite-title">CURE<span class="heart">&#9829;</span></div>
+    <div class="invite-support">Join us in support of<strong id="hero-title">Breast Cancer Awareness</strong></div>
+    <div class="invite-divider"><span class="line"></span><span id="icon-divider"></span><span class="line"></span></div>
+    <div class="invite-tagline" id="hero-tagline">Together, we can make a difference.</div>
+    <div id="hero-date-wrap"></div>
+    <div class="invite-features">
+      <div class="invite-feature"><span id="icon-horseshoe"></span><span>Thrilling Racing</span></div>
+      <div class="invite-feature"><span id="icon-hat"></span><span>Fashions &amp; Fun</span></div>
+      <div class="invite-feature"><span id="icon-glass"></span><span>Food &amp; Drinks</span></div>
+      <div class="invite-feature"><span id="icon-ribbon"></span><span>Raffles &amp; Fundraising</span></div>
+    </div>
+    <div class="invite-note"><span id="icon-heart"></span><span>All proceeds go towards supporting breast cancer research, care and support.</span></div>
   </div>
   <div class="register-card-outer">
     <div class="register-card" id="register-content">Loading...</div>
+  </div>
+  <div class="invite-banner">
+    <div class="line1">Every bet. Every dollar. Every step.</div>
+    <div class="line2">Brings us closer to a cure.</div>
   </div>
 </div>
 
@@ -44,6 +100,22 @@
 var db = firebase.firestore();
 var content = document.getElementById("register-content");
 var settings = null;
+var MAX_TICKETS = 10;
+
+var ICONS = {
+  horseshoe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 4v6.5a6 6 0 0 0 12 0V4"/><circle cx="6" cy="3.2" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="3.2" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="11" r="1" fill="currentColor" stroke="none"/></svg>',
+  hat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="16.5" rx="9" ry="2.6"/><path d="M7.5 16c-.6-5 1.5-10.5 4.5-10.5s5.1 5.5 4.5 10.5"/><path d="M9 7c2-1 4-1 6 0"/></svg>',
+  glass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3h9l-1.2 8.2a3.3 3.3 0 0 1-6.6 0L7.5 3Z"/><path d="M12 13.5V21M8 21h8"/></svg>',
+  ribbon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c-2.3-3-6.2-3.8-6 -.8.1 1.8 3 2.7 6 3.8"/><path d="M12 11c2.3-3 6.2-3.8 6-.8-.1 1.8-3 2.7-6 3.8"/><path d="M12 13.8v6.7l-2.2-1.1-2 1.1v-4.3M16.2 19.4l-2-1.1-2.2 1.1"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.2s-6.8-4.2-9.2-8.4C1.1 8.2 2.2 5 5.3 4.2c2.2-.6 4.3.5 6.2 2.9 1.9-2.4 4-3.5 6.2-2.9 3.1.8 4.2 4 2.5 7.6-2.4 4.2-9.2 8.4-9.2 8.4Z"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M12 17.5c-2-1.4-3-2.3-3-3.6a1.6 1.6 0 0 1 3-.9 1.6 1.6 0 0 1 3 .9c0 1.3-1 2.2-3 3.6Z" fill="currentColor" stroke="none"/></svg>',
+  ticket: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z"/></svg>'
+};
+
+["divider", "horseshoe", "hat", "glass", "ribbon", "heart"].forEach(function (key) {
+  var el = document.getElementById("icon-" + key);
+  if (el) el.innerHTML = ICONS[key === "divider" ? "horseshoe" : key];
+});
 
 function esc(s) {
   if (s === null || s === undefined) return "";
@@ -64,13 +136,6 @@ function fmtDate(iso) {
   return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
-function daysUntil(iso) {
-  var target = new Date(iso + "T00:00:00");
-  var now = new Date();
-  var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((target - todayMid) / 86400000);
-}
-
 function toast(msg) {
   var wrap = document.getElementById("toast-wrap");
   if (!wrap) return;
@@ -82,16 +147,18 @@ function toast(msg) {
 }
 
 function renderHero() {
-  document.getElementById("hero-title").textContent = settings.eventName || "Racing for a Cure";
-  document.getElementById("hero-tagline").textContent = settings.tagline || "";
-  var days = settings.eventDate ? daysUntil(settings.eventDate) : null;
-  var countdownWrap = document.getElementById("hero-countdown-wrap");
-  if (days === null) { countdownWrap.innerHTML = ""; return; }
-  var daysLabel = days > 0 ? "days to go" : (days === 0 ? "It's today!" : "since the event");
-  var daysNum = days > 0 ? days : Math.abs(days);
-  countdownWrap.innerHTML =
-    '<div class="hero-date">' + esc(fmtDate(settings.eventDate)) + "</div>" +
-    (days === 0 ? "" : '<div class="hero-countdown">' + daysNum + '</div><div class="hero-countdown-lbl">' + daysLabel + "</div>");
+  document.getElementById("hero-title").textContent = settings.eventName || "Breast Cancer Awareness";
+  document.getElementById("hero-tagline").textContent = settings.tagline || "Together, we can make a difference.";
+  var dateWrap = document.getElementById("hero-date-wrap");
+  if (!settings.eventDate) { dateWrap.innerHTML = ""; return; }
+  var d = new Date(settings.eventDate + "T00:00:00");
+  var dayName = isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { weekday: "long" });
+  var dayNum = isNaN(d.getTime()) ? "" : d.getDate();
+  var monthName = isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "long" });
+  dateWrap.innerHTML =
+    '<div class="invite-date">' + ICONS.calendar +
+      '<div class="d-wrap"><div class="d-day">' + esc(dayName) + '</div><div class="d-date">' + dayNum + " " + esc(monthName).toUpperCase() + "</div></div>" +
+    "</div>";
 }
 
 function dueDateBanner(extra) {
@@ -99,67 +166,111 @@ function dueDateBanner(extra) {
   return '<div class="banner warn" style="margin:' + (extra || "14px 0 0") + '"><strong>Payment due ' + esc(fmtDate(settings.paymentDueDate)) + '</strong> — getting this in by then really helps us finalise the day, thank you!</div>';
 }
 
+function ticketHolderFields(n) {
+  if (n === 1) {
+    return '<div class="field"><label>First name *</label><input name="firstName1" required placeholder="First name"></div>' +
+      '<div class="field"><label>Last name *</label><input name="lastName1" required placeholder="Last name"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Email *</label><input name="email1" type="email" required placeholder="you@email.com"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Phone</label><input name="phone" type="tel" placeholder="04xx xxx xxx"></div>';
+  }
+  var out = '<div class="field"><label>Your first name *</label><input name="firstName1" required placeholder="First name"></div>' +
+    '<div class="field"><label>Your last name *</label><input name="lastName1" required placeholder="Last name"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label>Your email *</label><input name="email1" type="email" required placeholder="you@email.com"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label>Your phone</label><input name="phone" type="tel" placeholder="04xx xxx xxx"></div>';
+  for (var i = 2; i <= n; i++) {
+    out += '<div class="field" style="grid-column:1/-1"><div class="ticket-holder-block">' +
+      '<div class="th-label">Ticket ' + i + '</div>' +
+      '<div class="form-grid">' +
+        '<div class="field"><label>First name *</label><input name="firstName' + i + '" required placeholder="First name"></div>' +
+        '<div class="field"><label>Last name *</label><input name="lastName' + i + '" required placeholder="Last name"></div>' +
+        '<div class="field" style="grid-column:1/-1"><label>Email *</label><input name="email' + i + '" type="email" required placeholder="email@example.com"></div>' +
+      "</div></div></div>";
+  }
+  return out;
+}
+
 function renderForm() {
   var price = Number(settings.ticketPrice) || 0;
   content.innerHTML =
     '<h2>Request your tickets</h2>' +
-    '<p class="muted" style="font-size:13.5px">' + money(price) + ' per ticket. Once you register, we will show you how to pay to secure your spot.</p>' +
+    '<p class="muted" style="font-size:13.5px">' + money(price) + ' per ticket. We need each ticket holder\'s name and email, even if you are booking for a group. Once you register, we will show you how to pay to secure your spot.</p>' +
     dueDateBanner("0 0 4px") +
     '<form id="register-form" class="form-grid" style="margin-top:14px">' +
-      '<div class="field" style="grid-column:1/-1"><label>Name *</label><input name="name" required placeholder="Your name"></div>' +
-      '<div class="field" style="grid-column:1/-1"><label>Email *</label><input name="email" type="email" required placeholder="you@email.com"></div>' +
-      '<div class="field" style="grid-column:1/-1"><label>Phone</label><input name="phone" type="tel" placeholder="04xx xxx xxx"></div>' +
-      '<div class="field"><label>Tickets</label><input name="tickets" type="number" min="1" max="20" value="1"></div>' +
-      '<div class="field" style="grid-column:1/-1"><label>Notes</label><input name="notes" placeholder="Accessibility needs, plus one, etc"></div>' +
-      '<div class="field" style="grid-column:1/-1"><button type="submit" class="btn" style="width:100%;justify-content:center">' + icon("ticket") + " Request tickets</button></div>" +
+      '<div class="field" style="grid-column:1/-1"><label>Number of tickets</label><input name="tickets" id="tickets-input" type="number" min="1" max="' + MAX_TICKETS + '" value="1"></div>' +
+      '<div id="ticket-holders" style="display:contents">' + ticketHolderFields(1) + "</div>" +
+      '<div class="field" style="grid-column:1/-1"><label>Notes</label><input name="notes" placeholder="Accessibility needs, dietary needs, etc"></div>' +
+      '<div class="field" style="grid-column:1/-1"><button type="submit" class="btn" style="width:100%;justify-content:center">' + ICONS.ticket + " Request tickets</button></div>" +
     "</form>";
   document.getElementById("register-form").addEventListener("submit", onSubmit);
+  document.getElementById("tickets-input").addEventListener("input", function () {
+    var n = Math.max(1, Math.min(MAX_TICKETS, parseInt(this.value, 10) || 1));
+    document.getElementById("ticket-holders").innerHTML = ticketHolderFields(n);
+  });
 }
 
-function icon(name) {
-  if (name === "ticket") return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z"/></svg>';
-  return "";
-}
-
-function renderThankYou(name, tickets) {
+function renderThankYou(primaryName, tickets, names) {
   var price = Number(settings.ticketPrice) || 0;
   var total = price * tickets;
   var paymentInfo = settings.paymentInfo || "The organiser will be in touch with payment details.";
   content.innerHTML =
-    '<h2>Thanks, ' + esc(name) + '!</h2>' +
-    '<p style="text-align:center">Your request for ' + tickets + (tickets === 1 ? " ticket" : " tickets") + ' (' + money(total) + ') has been sent through.</p>' +
+    '<h2>Thanks, ' + esc(primaryName) + '!</h2>' +
+    '<p style="text-align:center">Your request for ' + tickets + (tickets === 1 ? " ticket" : " tickets") + ' (' + money(total) + ')' + (tickets > 1 ? " for " + esc(names.join(", ")) : "") + ' has been sent through.</p>' +
     '<div class="divider"></div>' +
     '<p class="muted" style="font-size:13px;margin-bottom:6px;text-align:center">To complete your booking, please pay using:</p>' +
     '<div class="template-box">' + esc(paymentInfo) + '</div>' +
-    '<p class="muted" style="font-size:12.5px;margin-top:10px;text-align:center">Please use <strong>' + esc(name) + '</strong> as your payment reference so we can match it to your registration.</p>' +
+    '<p class="muted" style="font-size:12.5px;margin-top:10px;text-align:center">Please use <strong>' + esc(primaryName) + '</strong> as your payment reference so we can match it to your registration.</p>' +
     dueDateBanner("16px 0 0");
 }
 
 function onSubmit(e) {
   e.preventDefault();
   var f = e.target;
-  var name = f.name.value.trim();
-  var email = f.email.value.trim();
-  if (!name || !email) return;
-  var tickets = Math.max(1, Math.min(20, parseInt(f.tickets.value, 10) || 1));
+  var ticketsCount = Math.max(1, Math.min(MAX_TICKETS, parseInt(f.tickets.value, 10) || 1));
+  var firstName1 = f.firstName1.value.trim();
+  var lastName1 = f.lastName1.value.trim();
+  var email1 = f.email1.value.trim();
+  if (!firstName1 || !lastName1 || !email1) return;
+  var phone = f.phone.value.trim();
+  var notes = f.notes.value.trim();
+  var primaryName = firstName1 + " " + lastName1;
+
+  var holders = [{ name: primaryName, email: email1, phone: phone }];
+  for (var i = 2; i <= ticketsCount; i++) {
+    var fnEl = f["firstName" + i], lnEl = f["lastName" + i], emEl = f["email" + i];
+    var fnV = fnEl ? fnEl.value.trim() : "";
+    var lnV = lnEl ? lnEl.value.trim() : "";
+    var emV = emEl ? emEl.value.trim() : "";
+    if (!fnV || !lnV || !emV) { toast("Please fill in every ticket holder's details."); return; }
+    holders.push({ name: fnV + " " + lnV, email: emV, phone: "" });
+  }
+
   var btn = f.querySelector("button[type=submit]");
   btn.disabled = true;
   btn.textContent = "Sending...";
 
-  var ref = db.collection("attendees").doc();
-  var data = {
-    id: ref.id,
-    name: name,
-    email: email,
-    phone: f.phone.value.trim(),
-    tickets: tickets,
-    status: "invited",
-    amountPaid: 0,
-    notes: f.notes.value.trim(),
-    dateAdded: new Date().toISOString().slice(0, 10)
-  };
-  ref.set(data).then(function () {
-    renderThankYou(name, tickets);
+  var batch = db.batch();
+  var today = new Date().toISOString().slice(0, 10);
+  holders.forEach(function (h, idx) {
+    var ref = db.collection("attendees").doc();
+    var noteText = idx === 0
+      ? (ticketsCount > 1 ? ("Group booking, " + ticketsCount + " tickets total. " : "") + notes
+        ).trim()
+      : ("With " + primaryName + " (part of a " + ticketsCount + "-ticket booking). " + notes).trim();
+    batch.set(ref, {
+      id: ref.id,
+      name: h.name,
+      email: h.email,
+      phone: h.phone,
+      tickets: 1,
+      status: "invited",
+      amountPaid: 0,
+      notes: noteText,
+      dateAdded: today
+    });
+  });
+
+  batch.commit().then(function () {
+    renderThankYou(primaryName, ticketsCount, holders.map(function (h) { return h.name; }));
   }).catch(function (err) {
     console.error(err);
     toast("Something went wrong, please try again.");
@@ -174,7 +285,6 @@ db.collection("settings").doc("event").get().then(function (doc) {
   renderForm();
 }).catch(function (err) {
   console.error(err);
-  document.getElementById("hero-title").textContent = "Something went wrong";
   content.innerHTML = '<p class="muted" style="text-align:center">Could not load event details, please try again shortly.</p>';
 });
 })();
