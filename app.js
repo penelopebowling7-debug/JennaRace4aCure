@@ -840,7 +840,7 @@ function renderAttendeeRow(a) {
     '<td><select data-field="status" class="status-select ' + esc(a.status) + '"' + lockPayment + '>' +
       Object.keys(ATTENDEE_STATUS_LABELS).map(function (k) { return '<option value="' + k + '"' + (a.status === k ? " selected" : "") + ">" + ATTENDEE_STATUS_LABELS[k] + "</option>"; }).join("") +
     "</select></td>" +
-    '<td class="num"><input data-field="amountPaid" type="number" min="0" step="0.01" value="' + esc(a.amountPaid) + '" style="width:84px;text-align:right"' + lockPayment + "></td>" +
+    '<td class="num" title="Set automatically from status and ticket count">' + money(a.amountPaid) + "</td>" +
     '<td><input data-field="notes" value="' + esc(a.notes) + '"></td>' +
     '<td><button type="button" class="icon-btn" data-action="remove" title="Remove attendee">' + icon("trash") + "</button></td>" +
   "</tr>";
@@ -1386,7 +1386,12 @@ function onRootChange(e) {
   if (!field) return;
 
   var patch2 = {};
-  if (field === "status-toggle") {
+  if (coll === "attendees" && field === "status") {
+    var attendee = STATE.attendees.filter(function (a) { return a.id === id; })[0];
+    var ticketsN = attendee ? Number(attendee.tickets) || 0 : 0;
+    patch2.status = t.value;
+    patch2.amountPaid = t.value === "paid" ? ticketsN * (Number(STATE.settings.ticketPrice) || 0) : 0;
+  } else if (field === "status-toggle") {
     patch2.status = t.checked ? "done" : "not-started";
   } else if (t.type === "checkbox") {
     patch2[field] = t.checked;
