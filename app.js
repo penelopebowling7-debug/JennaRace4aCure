@@ -424,6 +424,7 @@ function seedChecklist() {
 var DEFAULT_EMAIL_TEMPLATES = [
   { context: "donations", name: "Initial ask", subject: "Racing for a Cure - can you help?", body: EMAIL_TEMPLATE },
   { context: "donations", name: "Gentle follow-up", subject: "Just checking in - Racing for a Cure", body: "Hi [Contact Name],\n\nI reached out a little while ago about donating a prize for Racing for a Cure, and wanted to gently check in. No pressure at all, I know everyone is busy.\n\nIf you're able to help, even something small would mean a lot. And if now isn't the right time, that's completely okay too, thank you for reading this far either way.\n\nWarmly,\nJenna" },
+  { context: "guests", name: "Invite to register", subject: "", body: "Hey [Name]! I'm holding Racing for a Cure on {{eventDate}}, a race day fundraiser for breast cancer research and care. Would love to have you there. Pop your details in here to request a ticket: {{registerLink}}" },
   { context: "guests", name: "Payment follow-up", subject: "Racing for a Cure - payment follow up", body: "Hi there,\n\nJust a friendly reminder that we haven't yet received payment for your ticket(s) to Racing for a Cure.\n\n{{paymentInfo}}\n\nPayment due: {{dueDate}}\n\nThanks so much for your support, it means the world.\n\nJenna" },
   { context: "guests", name: "Gentle nudge", subject: "Just a gentle reminder - Racing for a Cure", body: "Hi there,\n\nJust popping into your inbox with a gentle nudge about your ticket payment for Racing for a Cure. No stress if it's slipped your mind, just wanted to make sure you had the details handy.\n\n{{paymentInfo}}\n\nThank you!\nJenna" },
   { context: "guests", name: "General update", subject: "Racing for a Cure - update", body: "Hi everyone,\n\nJust a quick update ahead of Racing for a Cure on {{eventDate}}...\n\nThanks for your support!\nJenna" }
@@ -438,12 +439,17 @@ function seedEmailTemplates() {
   batch.commit().catch(function (err) { console.error(err); });
 }
 
+function registerLinkUrl() {
+  return window.location.href.replace(/index\.html$/, "").replace(/\/$/, "") + "/register-tickets.html";
+}
+
 function fillTemplateTokens(text) {
   return (text || "")
     .replace(/\{\{paymentInfo\}\}/g, STATE.settings.paymentInfo || "[Add your payment details under Overview -> Event settings]")
     .replace(/\{\{dueDate\}\}/g, STATE.settings.paymentDueDate ? fmtDate(STATE.settings.paymentDueDate) : "")
     .replace(/\{\{eventDate\}\}/g, fmtDate(STATE.settings.eventDate) || "")
-    .replace(/\{\{eventName\}\}/g, STATE.settings.eventName || "");
+    .replace(/\{\{eventName\}\}/g, STATE.settings.eventName || "")
+    .replace(/\{\{registerLink\}\}/g, registerLinkUrl());
 }
 
 function templatesForContext(context) {
@@ -728,7 +734,7 @@ function renderAttendees() {
 
     '<details class="panel"><summary>Public register link <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
       '<p class="muted" style="font-size:13px;margin:0 0 8px">Share this link with anyone, no sign-in needed. It lets them register their contact details and request tickets, which land here with Registered interest status for you to follow up and mark paid.</p>' +
-      '<div class="template-box" id="register-link-box">' + esc(window.location.href.replace(/index\.html$/, "").replace(/\/$/, "")) + '/register-tickets.html</div>' +
+      '<div class="template-box" id="register-link-box">' + esc(registerLinkUrl()) + "</div>" +
       '<div style="margin-top:10px"><button type="button" class="btn subtle" data-action="copy-register-link">' + icon("copy") + " Copy link</button></div>" +
     "</div></details>" +
 
