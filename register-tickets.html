@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Lato:ital,wght@0,400;0,700;0,900;1,400&family=Playfair+Display:ital,wght@0,900;1,600;1,700&display=swap">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 <style>
   .invite-hero{background:
       radial-gradient(circle at 18% 8%, var(--rose-100), transparent 55%),
@@ -253,8 +253,7 @@ function onSubmit(e) {
   holders.forEach(function (h, idx) {
     var ref = db.collection("attendees").doc();
     var noteText = idx === 0
-      ? (ticketsCount > 1 ? ("Group booking, " + ticketsCount + " tickets total. " : "") + notes
-        ).trim()
+      ? ((ticketsCount > 1 ? ("Group booking, " + ticketsCount + " tickets total. ") : "") + notes).trim()
       : ("With " + primaryName + " (part of a " + ticketsCount + "-ticket booking). " + notes).trim();
     batch.set(ref, {
       id: ref.id,

@@ -155,7 +155,7 @@
   .pill.rose{background:var(--rose-100);color:var(--rose-700)}
   select.status-select{border:none;background:transparent;font-weight:800;font-size:11.5px;padding:3px 6px;border-radius:999px;cursor:pointer}
   select.status-select.paid,select.status-select.done,select.status-select.confirmed,select.status-select.received{background:var(--success-100);color:var(--success-ink)}
-  select.status-select.attending,select.status-select.in-progress,select.status-select.asked,select.status-select.planning{background:var(--warning-100);color:var(--warning-ink)}
+  select.status-select.in-progress,select.status-select.asked,select.status-select.planning{background:var(--warning-100);color:var(--warning-ink)}
   select.status-select.declined,select.status-select.not-started,select.status-select.idea,select.status-select.invited{background:var(--surface-3);color:var(--ink-soft)}
   select.status-select.to-contact,select.status-select.no-reply{background:var(--critical-100);color:var(--critical-ink)}
 

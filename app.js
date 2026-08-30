@@ -18,6 +18,7 @@ var ICONS = {
   chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
   money: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5v11M15.2 9.3c0-1.4-1.4-2.3-3.2-2.3s-3.2 1-3.2 2.3c0 3 6.4 1.5 6.4 4.4 0 1.4-1.4 2.3-3.2 2.3s-3.2-1-3.2-2.4"/></svg>',
   mail: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+  clock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
   google: '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.1 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.4 5.7c4.3-4 6.8-9.9 6.8-17.4z"/><path fill="#FBBC05" d="M10.5 19.3A14.5 14.5 0 0 0 9.5 24c0 1.7.3 3.3.9 4.8l-7.9 6.1A24 24 0 0 1 0 24c0-3.9.9-7.5 2.6-10.8l7.9 6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.4-5.7c-2.1 1.4-4.7 2.2-7.6 2.2-6.3 0-11.6-4.1-13.6-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>'
 };
 
@@ -28,6 +29,7 @@ var TABS = [
   { id: "donations", label: "Donations & Prizes", icon: "gift" },
   { id: "activities", label: "Fundraising Activities", icon: "flag" },
   { id: "checklist", label: "Event Checklist", icon: "checklist" },
+  { id: "runsheet", label: "Day-Of Run Sheet", icon: "clock" },
   { id: "comms", label: "Email Templates", icon: "mail" }
 ];
 
@@ -62,11 +64,22 @@ var DONATION_TIPS = [
 
 var EMAIL_TEMPLATE = "Hi [Contact Name],\n\nMy name is Jenna. My mum has bravely fought breast cancer, and is now facing another battle with it. She's always taught me it's better to give than to receive, so for my 40th birthday this year, instead of gifts, I'm holding Racing for a Cure on Saturday 17 October, a race day fundraiser for breast cancer research, care and support.\n\nThis isn't a professional event, it's something personal I care about more than words can really say, and I'm reaching out to businesses I admire, like [Business Name], to help make it special. Would you be open to donating a prize, product, voucher or experience for our raffle and fundraising activities on the day?\n\nIn return, I'd love to shout out [Business Name] on our event signage, social media and in our thank you messages to guests.\n\nIf you're able to help, I can arrange pickup or drop-off at a time that suits you, and I'll make sure you get a receipt for your records.\n\nThank you for reading this far, it genuinely means more than you know. Every contribution, big or small, brings us closer to a cure, and closer to my mum.\n\nWith love and gratitude,\nJenna";
 
-var ATTENDEE_STATUS_LABELS = { invited: "Registered interest", attending: "Attending", paid: "Paid" };
+var ATTENDEE_STATUS_LABELS = { invited: "Registered interest", paid: "Paid" };
 var DONATION_STATUS_LABELS = { "to-contact": "To contact", asked: "Asked", "no-reply": "No reply", confirmed: "Verbal commitment", received: "Received", declined: "Declined" };
 var ACTIVITY_STATUS_LABELS = { planning: "Planning", confirmed: "Confirmed", complete: "Complete" };
 var CHECKLIST_STATUS_LABELS = { "not-started": "Not started", "in-progress": "In progress", done: "Done" };
 var CHECKLIST_CATEGORIES = ["Venue & Logistics", "Marketing & Promotion", "Guest Management", "Fundraising Setup", "Day-Of Run Sheet", "Post-Event"];
+var RUNSHEET_STATUS_LABELS = { "not-started": "Not started", "in-progress": "In progress", done: "Done" };
+
+var DEFAULT_RUNSHEET = [
+  { time: "08:00", activity: "Venue set up: decor, signage, registration table", assignedTo: "", notes: "" },
+  { time: "08:30", activity: "Volunteer briefing", assignedTo: "", notes: "Roles and timings for the day" },
+  { time: "09:00", activity: "Guest check-in and registration opens", assignedTo: "", notes: "" },
+  { time: "09:30", activity: "Welcome speech, kick off the event", assignedTo: "", notes: "" },
+  { time: "10:00", activity: "Fundraising activities and draws begin", assignedTo: "", notes: "Raffle, sweepstake, photo booth etc" },
+  { time: "15:00", activity: "Thank you speech and prize presentations", assignedTo: "", notes: "" },
+  { time: "16:00", activity: "Pack down venue", assignedTo: "", notes: "" }
+];
 
 var DEFAULT_CHECKLIST = [
   { category: "Venue & Logistics", task: "Confirm venue booking and pay deposit", timing: "8+ weeks before" },
@@ -120,7 +133,7 @@ try { db.enablePersistence({ synchronizeTabs: true }).catch(function () {}); } c
 
 /* ============================= state ============================= */
 
-var STATE = { settings: DEFAULT_SETTINGS, attendees: [], donations: [], activities: [], checklist: [], manualFunds: [], emailTemplates: [] };
+var STATE = { settings: DEFAULT_SETTINGS, attendees: [], donations: [], activities: [], checklist: [], manualFunds: [], emailTemplates: [], runsheet: [] };
 var accessEmails = [];
 var paymentAdminEmails = [];
 var siteAdminEmails = [];
@@ -187,7 +200,7 @@ function icon(name) { return ICONS[name] || ""; }
 function computeStats() {
   var ticketsSold = STATE.attendees.reduce(function (sum, a) { return sum + (Number(a.tickets) || 0); }, 0);
   var revenuePaid = STATE.attendees.reduce(function (sum, a) { return a.status === "paid" ? sum + (Number(a.amountPaid) || 0) : sum; }, 0);
-  var revenuePending = STATE.attendees.reduce(function (sum, a) { return (a.status === "invited" || a.status === "attending") ? sum + (Number(a.amountPaid) || (Number(a.tickets) || 0) * (Number(STATE.settings.ticketPrice) || 0)) : sum; }, 0);
+  var revenuePending = STATE.attendees.reduce(function (sum, a) { return a.status === "invited" ? sum + (Number(a.amountPaid) || (Number(a.tickets) || 0) * (Number(STATE.settings.ticketPrice) || 0)) : sum; }, 0);
   var donationValueSecured = STATE.donations.reduce(function (sum, d) { return (d.status === "confirmed" || d.status === "received") ? sum + (Number(d.value) || 0) : sum; }, 0);
   var donationsConfirmedCount = STATE.donations.filter(function (d) { return d.status === "confirmed" || d.status === "received"; }).length;
   var activityRevenueActual = STATE.activities.reduce(function (sum, a) { return sum + (Number(a.actualRevenue) || 0); }, 0);
@@ -408,6 +421,16 @@ function startApp() {
     }
   }));
 
+  unsubscribers.push(col("runsheet").onSnapshot(function (snap) {
+    if (snap.empty) {
+      seedRunsheet();
+    } else {
+      STATE.runsheet = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+        .sort(function (a, b) { return (a.time || "").localeCompare(b.time || ""); });
+      renderAll();
+    }
+  }));
+
   window.addEventListener("online", function () { ui.online = true; renderAll(); });
   window.addEventListener("offline", function () { ui.online = false; renderAll(); });
 }
@@ -435,6 +458,15 @@ function seedEmailTemplates() {
   DEFAULT_EMAIL_TEMPLATES.forEach(function (t) {
     var ref = col("emailTemplates").doc();
     batch.set(ref, { id: ref.id, context: t.context, name: t.name, subject: t.subject, body: t.body });
+  });
+  batch.commit().catch(function (err) { console.error(err); });
+}
+
+function seedRunsheet() {
+  var batch = db.batch();
+  DEFAULT_RUNSHEET.forEach(function (item) {
+    var ref = col("runsheet").doc();
+    batch.set(ref, { id: ref.id, time: item.time, activity: item.activity, assignedTo: item.assignedTo, notes: item.notes, status: "not-started" });
   });
   batch.commit().catch(function (err) { console.error(err); });
 }
@@ -557,6 +589,7 @@ function renderTabPanel() {
     case "donations": return renderDonations();
     case "activities": return renderActivities();
     case "checklist": return renderChecklist();
+    case "runsheet": return renderRunsheet();
     case "comms": return renderComms();
     default: return "";
   }
@@ -663,7 +696,7 @@ function renderMoneyRaised() {
 
     '<div class="kpi-grid">' +
       '<div class="kpi"><div class="kpi-label">Ticket price</div><div class="kpi-value">' + money(price) + '</div><div class="kpi-sub">per ticket, set below</div></div>' +
-      '<div class="kpi success"><div class="kpi-label">Ticket revenue (paid)</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + ' pending from guests who have registered interest or are attending</div></div>' +
+      '<div class="kpi success"><div class="kpi-label">Ticket revenue (paid)</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + ' pending from guests who have registered interest</div></div>' +
       '<div class="kpi"><div class="kpi-label">Activity revenue</div><div class="kpi-value">' + money(s.activityRevenueActual) + '</div><div class="kpi-sub">from Fundraising Activities</div></div>' +
       '<div class="kpi gold"><div class="kpi-label">Manually logged</div><div class="kpi-value">' + money(s.manualFundsTotal) + '</div><div class="kpi-sub">' + STATE.manualFunds.length + ' ' + (STATE.manualFunds.length === 1 ? "entry" : "entries") + '</div></div>' +
       '<div class="kpi success"><div class="kpi-label">Total raised</div><div class="kpi-value">' + money(s.totalRaised) + '</div><div class="kpi-sub">Ticket revenue + activity revenue + manual entries</div></div>' +
@@ -744,7 +777,7 @@ function renderAttendees() {
         '<div class="field"><label>Email</label><input name="email" type="email" placeholder="guest@email.com"></div>' +
         '<div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="04xx xxx xxx"></div>' +
         '<div class="field"><label>Tickets</label><input name="tickets" type="number" min="1" value="1"></div>' +
-        '<div class="field"><label>Status</label><select name="status"><option value="invited">Registered interest</option><option value="attending">Attending</option>' + (canPay ? '<option value="paid">Paid</option>' : "") + '</select></div>' +
+        '<div class="field"><label>Status</label><select name="status"><option value="invited">Registered interest</option>' + (canPay ? '<option value="paid">Paid</option>' : "") + '</select></div>' +
         '<div class="field"><label>Notes</label><input name="notes" placeholder="Accessibility needs, plus one, etc"></div>' +
         '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add attendee</button></div>" +
       "</form></div></details>" +
@@ -761,8 +794,6 @@ function renderAttendees() {
         '<button type="button" class="btn subtle sm" data-action="select-all-attendees">Select all guests</button>' +
         '<button type="button" class="btn subtle sm" data-action="select-unpaid-attendees">Select not yet paid</button>' +
         '<button type="button" class="btn subtle sm" data-action="select-paid-attendees">Select paid</button>' +
-        '<button type="button" class="btn subtle sm" data-action="select-status-attendees" data-status="invited">Select registered interest</button>' +
-        '<button type="button" class="btn subtle sm" data-action="select-status-attendees" data-status="attending">Select attending</button>' +
         '<button type="button" class="btn subtle sm" data-action="select-none-attendees">Clear selection</button>' +
         '<span class="pill rose" style="align-self:center">' + selectedCount + " selected</span>" +
       "</div>" +
@@ -787,7 +818,6 @@ function renderAttendees() {
       '<select id="attendee-filter">' +
         '<option value="all"' + (ui.attendeeFilter === "all" ? " selected" : "") + ">All statuses</option>" +
         '<option value="invited"' + (ui.attendeeFilter === "invited" ? " selected" : "") + ">Registered interest</option>" +
-        '<option value="attending"' + (ui.attendeeFilter === "attending" ? " selected" : "") + ">Attending</option>" +
         '<option value="paid"' + (ui.attendeeFilter === "paid" ? " selected" : "") + ">Paid</option>" +
       "</select>" +
     "</div>" +
@@ -813,6 +843,46 @@ function renderAttendeeRow(a) {
     '<td class="num"><input data-field="amountPaid" type="number" min="0" step="0.01" value="' + esc(a.amountPaid) + '" style="width:84px;text-align:right"' + lockPayment + "></td>" +
     '<td><input data-field="notes" value="' + esc(a.notes) + '"></td>' +
     '<td><button type="button" class="icon-btn" data-action="remove" title="Remove attendee">' + icon("trash") + "</button></td>" +
+  "</tr>";
+}
+
+/* ============================= render: runsheet ============================= */
+
+function renderRunsheet() {
+  var list = STATE.runsheet;
+  var rows = list.map(renderRunsheetRow).join("");
+  if (!list.length) {
+    rows = '<tr><td colspan="6" class="empty-row">No run sheet items yet. Add your first one below.</td></tr>';
+  }
+
+  return '<div class="tab-panel">' +
+    '<div class="section-head"><div><div class="eyebrow">Day-of run sheet</div><h2>The schedule for race day</h2><p>A chronological plan for the day itself: what happens when, and who is running it. Tick items off live as the day goes.</p></div></div>' +
+
+    '<details class="panel" open><summary>Add a run sheet item <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
+      '<form id="add-runsheet-form" class="form-grid">' +
+        '<div class="field"><label>Time</label><input name="time" type="time" required></div>' +
+        '<div class="field" style="grid-column:1/-1"><label>Activity *</label><input name="activity" required placeholder="What happens at this time"></div>' +
+        '<div class="field"><label>Assigned to</label><input name="assignedTo" placeholder="Who is running it"></div>' +
+        '<div class="field" style="grid-column:1/-1"><label>Notes</label><input name="notes" placeholder="Location, details, etc"></div>' +
+        '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add item</button></div>" +
+      "</form></div></details>" +
+
+    '<div class="table-wrap"><table class="data"><thead><tr>' +
+      "<th>Time</th><th>Activity</th><th>Assigned to</th><th>Notes</th><th>Status</th><th></th>" +
+    "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
+  "</div>";
+}
+
+function renderRunsheetRow(r) {
+  return '<tr data-collection="runsheet" data-id="' + r.id + '">' +
+    '<td><input type="time" data-field="time" value="' + esc(r.time) + '" style="width:110px"></td>' +
+    '<td><input data-field="activity" value="' + esc(r.activity) + '"></td>' +
+    '<td><input data-field="assignedTo" value="' + esc(r.assignedTo) + '" placeholder="Unassigned"></td>' +
+    '<td><input data-field="notes" value="' + esc(r.notes) + '"></td>' +
+    '<td><select data-field="status" class="status-select ' + esc(r.status) + '">' +
+      Object.keys(RUNSHEET_STATUS_LABELS).map(function (k) { return '<option value="' + k + '"' + (r.status === k ? " selected" : "") + ">" + RUNSHEET_STATUS_LABELS[k] + "</option>"; }).join("") +
+    "</select></td>" +
+    '<td><button type="button" class="icon-btn" data-action="remove" title="Remove item">' + icon("trash") + "</button></td>" +
   "</tr>";
 }
 
@@ -1093,7 +1163,7 @@ function parseBulkAttendees(text) {
     var tickets = parseInt(parts[2], 10);
     if (!tickets || tickets < 1) tickets = 1;
     var statusRaw = (parts[3] || "").toLowerCase();
-    var status = statusRaw === "paid" ? "paid" : (statusRaw === "attending" ? "attending" : "invited");
+    var status = statusRaw === "paid" ? "paid" : "invited";
     out.push({
       name: name, email: email, phone: "", tickets: tickets, status: status,
       amountPaid: status === "paid" ? tickets * (Number(STATE.settings.ticketPrice) || 0) : 0,
@@ -1228,7 +1298,7 @@ function onRootClick(e) {
     var added = parseBulkAttendees(ta.value);
     if (!added.length) { toast("Paste at least one guest name first."); return; }
     if (!canMarkPayments()) {
-      added.forEach(function (a) { if (a.status === "paid") { a.status = "attending"; a.amountPaid = 0; } });
+      added.forEach(function (a) { if (a.status === "paid") { a.status = "invited"; a.amountPaid = 0; } });
     }
     var batch = db.batch();
     added.forEach(function (a) {
@@ -1265,21 +1335,13 @@ function onRootClick(e) {
   }
   if (e.target.closest('[data-action="select-unpaid-attendees"]')) {
     ui.emailSelected = {};
-    STATE.attendees.forEach(function (a) { if (a.status === "invited" || a.status === "attending") ui.emailSelected[a.id] = true; });
+    STATE.attendees.forEach(function (a) { if (a.status === "invited") ui.emailSelected[a.id] = true; });
     renderAttendeesInPlace();
     return;
   }
   if (e.target.closest('[data-action="select-paid-attendees"]')) {
     ui.emailSelected = {};
     STATE.attendees.forEach(function (a) { if (a.status === "paid") ui.emailSelected[a.id] = true; });
-    renderAttendeesInPlace();
-    return;
-  }
-  var statusSelectBtn = e.target.closest('[data-action="select-status-attendees"]');
-  if (statusSelectBtn) {
-    var wantStatus = statusSelectBtn.getAttribute("data-status");
-    ui.emailSelected = {};
-    STATE.attendees.forEach(function (a) { if (a.status === wantStatus) ui.emailSelected[a.id] = true; });
     renderAttendeesInPlace();
     return;
   }
@@ -1423,6 +1485,17 @@ function onRootSubmit(e) {
     addDoc("checklist", { category: f4.category.value, task: task, owner: f4.owner.value.trim(), dueDate: f4.dueDate.value, status: "not-started", notes: "" });
     toast("Task added.");
     f4.reset();
+    return;
+  }
+
+  if (e.target.id === "add-runsheet-form") {
+    e.preventDefault();
+    var f7 = e.target;
+    var activity = f7.activity.value.trim();
+    if (!activity) return;
+    addDoc("runsheet", { time: f7.time.value, activity: activity, assignedTo: f7.assignedTo.value.trim(), notes: f7.notes.value.trim(), status: "not-started" });
+    toast("Added to the run sheet.");
+    f7.reset();
     return;
   }
 
