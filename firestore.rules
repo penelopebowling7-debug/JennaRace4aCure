@@ -6,20 +6,24 @@ rules_version = '2';
 // Activities, Checklist) require sign-in AND an approved email, same as
 // before. The public register-tickets.html page is the one exception:
 // anyone with the link can submit their contact details and a ticket
-// request without signing in, which lands as a new "Invited" attendee for
-// an approved editor to see.
+// request without signing in, which lands as a new attendee for an
+// approved editor to see.
 //
-// New this version: a payment-admin sub-list inside config/access. Only
-// payment admins can mark an attendee's status/amount as paid, or touch an
-// already-paid record's status/amount, since that's the person reconciling
-// against the real bank account. Everyone approved can still manage the
-// guest list itself (names, contact details, notes).
+// Three tiers of access, all stored on config/access:
+//  - emails: everyone who can sign in and use the planning pages at all.
+//  - paymentAdmins: a subset of emails who can additionally mark a guest as
+//    paid, or touch an already-paid record, since that's the person
+//    reconciling against the real bank account.
+//  - siteAdmins: a subset of emails who control BOTH of the lists above.
+//    Nobody else, including payment admins, can change who's approved or
+//    who's a payment admin, only a site admin can. There is deliberately no
+//    in-app way to grant siteAdmins itself beyond the one-time bootstrap/
+//    migration below, that's a rare enough change to do by hand in the
+//    Firebase console if it's ever needed.
 //
-// The very first person to ever sign in becomes the first approved editor
-// AND the first payment admin automatically, so there is no manual
-// Firestore console step needed to bootstrap access. From there, approved
-// editors manage who else is approved, and payment admins manage who else
-// is a payment admin, both from inside the app (Overview -> Manage access).
+// The very first person to ever sign in becomes the first approved editor,
+// first payment admin AND first site admin automatically, so there is no
+// manual Firestore console step needed to bootstrap a brand new project.
 //
 // Paste this whole file into: Firebase console -> Firestore Database ->
 // Rules tab -> replace everything -> Publish. See README.md for the full
@@ -44,13 +48,22 @@ service cloud.firestore {
       return signedIn() && request.auth.token.email in accessDoc().paymentAdmins;
     }
 
+    function isSiteAdmin() {
+      return signedIn() && request.auth.token.email in accessDoc().siteAdmins;
+    }
+
     // Anyone signed in can read the access list (so the app can tell them
-    // "you're not approved yet"). The document can be CREATED by a signed-in
-    // user only while it doesn't exist yet, seeding themselves as the sole
-    // approved editor AND sole payment admin, that's what lets the very
-    // first person in with no admin step. Once it exists: any approved
-    // editor can change who's on the approved list, but only an existing
-    // payment admin can change who's a payment admin.
+    // "you're not approved yet"). The document can be CREATED by a
+    // signed-in user only while it doesn't exist yet, seeding themselves as
+    // the sole approved editor, payment admin AND site admin, that's what
+    // lets the very first person in with no admin step.
+    //
+    // After that, only a site admin can change any of the three lists. The
+    // two "one-time migration" clauses below exist only for a project that
+    // was set up before paymentAdmins/siteAdmins existed: each lets any
+    // approved editor seed that one list exactly once, only while it has
+    // never been set. The moment a list is set, its clause can never fire
+    // again, so it can't be used to re-grant access later.
     match /config/access {
       allow read: if signedIn();
       allow create: if signedIn()
@@ -60,20 +73,22 @@ service cloud.firestore {
         && request.resource.data.emails[0] == request.auth.token.email
         && request.resource.data.paymentAdmins is list
         && request.resource.data.paymentAdmins.size() == 1
-        && request.resource.data.paymentAdmins[0] == request.auth.token.email;
-      // The "|| !('paymentAdmins' in resource.data) ..." clause is a one-time
-      // migration path for a project set up before payment admins existed:
-      // it lets any approved editor seed the paymentAdmins list exactly
-      // once, only while the field has never been set. The moment it's
-      // set, this clause can never fire again, so it can't be used to
-      // re-grant access later.
+        && request.resource.data.paymentAdmins[0] == request.auth.token.email
+        && request.resource.data.siteAdmins is list
+        && request.resource.data.siteAdmins.size() == 1
+        && request.resource.data.siteAdmins[0] == request.auth.token.email;
       allow update: if isApproved()
-        && (isPaymentAdmin()
-            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentAdmins'])
+        && (isSiteAdmin()
             || (!('paymentAdmins' in resource.data)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentAdmins'])
                 && request.resource.data.paymentAdmins is list
                 && request.resource.data.paymentAdmins.size() > 0
-                && request.resource.data.paymentAdmins[0] == request.auth.token.email));
+                && request.resource.data.paymentAdmins[0] == request.auth.token.email)
+            || (!('siteAdmins' in resource.data)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['siteAdmins'])
+                && request.resource.data.siteAdmins is list
+                && request.resource.data.siteAdmins.size() > 0
+                && request.resource.data.siteAdmins[0] == request.auth.token.email));
     }
 
     // Public settings are safe to expose read-only with no login, so the
@@ -123,6 +138,10 @@ service cloud.firestore {
     }
 
     match /manualFunds/{docId} {
+      allow read, write: if isApproved();
+    }
+
+    match /emailTemplates/{docId} {
       allow read, write: if isApproved();
     }
   }

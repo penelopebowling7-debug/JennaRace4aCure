@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&family=Playfair+Display:ital,wght@1,600;1,700&display=swap">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -69,6 +69,11 @@ function toast(msg) {
   setTimeout(function () { el.remove(); }, 3200);
 }
 
+function dueDateBanner(extra) {
+  if (!settings.paymentDueDate) return "";
+  return '<div class="banner warn" style="margin:' + (extra || "14px 0 0") + '"><strong>Payment due ' + esc(fmtDate(settings.paymentDueDate)) + '</strong> — getting this in by then really helps us finalise the day, thank you!</div>';
+}
+
 function renderForm() {
   var price = Number(settings.ticketPrice) || 0;
   content.style.textAlign = "left";
@@ -77,7 +82,8 @@ function renderForm() {
     '<p class="muted" style="text-align:center">' + esc(fmtDate(settings.eventDate)) + '</p>' +
     '<p style="text-align:center">' + esc(settings.tagline || "") + '</p>' +
     '<div class="divider"></div>' +
-    '<p class="muted" style="font-size:13.5px">Register your details below to request tickets, ' + money(price) + ' each. Someone from the team will be in touch with payment details and confirmation.</p>' +
+    '<p class="muted" style="font-size:13.5px">Register your details below to request tickets, ' + money(price) + ' each. Once you register, we will show you how to pay to secure your spot.</p>' +
+    dueDateBanner("0 0 4px") +
     '<form id="register-form" class="form-grid" style="margin-top:14px">' +
       '<div class="field" style="grid-column:1/-1"><label>Name *</label><input name="name" required placeholder="Your name"></div>' +
       '<div class="field" style="grid-column:1/-1"><label>Email *</label><input name="email" type="email" required placeholder="you@email.com"></div>' +
@@ -99,7 +105,8 @@ function renderThankYou(name, tickets) {
     '<div class="divider"></div>' +
     '<p class="muted" style="font-size:13px;margin-bottom:6px">To complete your booking, please pay using:</p>' +
     '<div class="template-box">' + esc(paymentInfo) + '</div>' +
-    '<p class="muted" style="font-size:12.5px;margin-top:10px">Please use <strong>' + esc(name) + '</strong> as your payment reference so we can match it to your registration.</p>';
+    '<p class="muted" style="font-size:12.5px;margin-top:10px">Please use <strong>' + esc(name) + '</strong> as your payment reference so we can match it to your registration.</p>' +
+    dueDateBanner("16px 0 0");
 }
 
 function onSubmit(e) {

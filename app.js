@@ -60,8 +60,8 @@ var DONATION_TIPS = [
 
 var EMAIL_TEMPLATE = "Hi [Contact Name],\n\nMy name is Jenna. My mum has bravely fought breast cancer, and is now facing another battle with it. She's always taught me it's better to give than to receive, so for my 40th birthday this year, instead of gifts, I'm holding Racing for a Cure on Saturday 17 October, a race day fundraiser for breast cancer research, care and support.\n\nThis isn't a professional event, it's something personal I care about more than words can really say, and I'm reaching out to businesses I admire, like [Business Name], to help make it special. Would you be open to donating a prize, product, voucher or experience for our raffle and fundraising activities on the day?\n\nIn return, I'd love to shout out [Business Name] on our event signage, social media and in our thank you messages to guests.\n\nIf you're able to help, I can arrange pickup or drop-off at a time that suits you, and I'll make sure you get a receipt for your records.\n\nThank you for reading this far, it genuinely means more than you know. Every contribution, big or small, brings us closer to a cure, and closer to my mum.\n\nWith love and gratitude,\nJenna";
 
-var ATTENDEE_STATUS_LABELS = { invited: "Invited", attending: "Attending", paid: "Paid", comp: "Complimentary" };
-var DONATION_STATUS_LABELS = { "to-contact": "To contact", asked: "Asked", confirmed: "Confirmed", received: "Received", declined: "Declined" };
+var ATTENDEE_STATUS_LABELS = { invited: "Registered interest", attending: "Attending", paid: "Paid" };
+var DONATION_STATUS_LABELS = { "to-contact": "To contact", asked: "Asked", "no-reply": "No reply", confirmed: "Verbal commitment", received: "Received", declined: "Declined" };
 var ACTIVITY_STATUS_LABELS = { planning: "Planning", confirmed: "Confirmed", complete: "Complete" };
 var CHECKLIST_STATUS_LABELS = { "not-started": "Not started", "in-progress": "In progress", done: "Done" };
 var CHECKLIST_CATEGORIES = ["Venue & Logistics", "Marketing & Promotion", "Guest Management", "Fundraising Setup", "Day-Of Run Sheet", "Post-Event"];
@@ -108,7 +108,7 @@ var DEFAULT_CHECKLIST = [
   { category: "Post-Event", task: "Debrief with the committee and capture what to improve next time", timing: "Within 2 weeks after" }
 ];
 
-var DEFAULT_SETTINGS = { eventName: "Jenna's Racing for a Cure", tagline: "A day of racing in support of breast cancer research, care and support", eventDate: "2026-10-17", ticketPrice: 215, ticketGoal: 100, paymentInfo: "" };
+var DEFAULT_SETTINGS = { eventName: "Jenna's Racing for a Cure", tagline: "A day of racing in support of breast cancer research, care and support", eventDate: "2026-10-17", ticketPrice: 215, ticketGoal: 100, paymentInfo: "", paymentDueDate: "" };
 
 /* ============================= firebase refs ============================= */
 
@@ -118,9 +118,10 @@ try { db.enablePersistence({ synchronizeTabs: true }).catch(function () {}); } c
 
 /* ============================= state ============================= */
 
-var STATE = { settings: DEFAULT_SETTINGS, attendees: [], donations: [], activities: [], checklist: [], manualFunds: [] };
+var STATE = { settings: DEFAULT_SETTINGS, attendees: [], donations: [], activities: [], checklist: [], manualFunds: [], emailTemplates: [] };
 var accessEmails = [];
 var paymentAdminEmails = [];
+var siteAdminEmails = [];
 var currentUser = null;
 var isApproved = false;
 var appStarted = false;
@@ -130,6 +131,10 @@ var ui = { tab: "overview", attendeeSearch: "", attendeeFilter: "all", donationF
 
 function canMarkPayments() {
   return !!(currentUser && paymentAdminEmails.indexOf((currentUser.email || "").toLowerCase()) > -1);
+}
+
+function canControlAccess() {
+  return !!(currentUser && siteAdminEmails.indexOf((currentUser.email || "").toLowerCase()) > -1);
 }
 
 /* ============================= helpers ============================= */
@@ -285,33 +290,44 @@ auth.onAuthStateChanged(function (user) {
   }
   renderGateChecking();
   var bootstrapAttempted = false;
-  var migrationAttempted = false;
+  var paymentMigrationAttempted = false;
+  var siteMigrationAttempted = false;
   var unsubAccess = db.collection("config").doc("access").onSnapshot(function (doc) {
     if (!doc.exists) {
       // Nobody has ever signed in before. The first person to arrive becomes
-      // the first approved editor AND first payment admin automatically,
-      // see firestore.rules: this write is only allowed while the document
-      // truly doesn't exist yet.
+      // the first approved editor, first payment admin AND first site admin
+      // automatically, see firestore.rules: this write is only allowed
+      // while the document truly doesn't exist yet.
       accessEmails = [];
       paymentAdminEmails = [];
+      siteAdminEmails = [];
       if (!bootstrapAttempted) {
         bootstrapAttempted = true;
         var selfEmail = (user.email || "").toLowerCase();
-        db.collection("config").doc("access").set({ emails: [selfEmail], paymentAdmins: [selfEmail] })
+        db.collection("config").doc("access").set({ emails: [selfEmail], paymentAdmins: [selfEmail], siteAdmins: [selfEmail] })
           .catch(function (err) { console.error(err); renderGateError(); });
       }
       return;
     }
     accessEmails = doc.data().emails || [];
     paymentAdminEmails = doc.data().paymentAdmins || [];
-    if (!doc.data().paymentAdmins && !migrationAttempted) {
+    siteAdminEmails = doc.data().siteAdmins || [];
+    if (!doc.data().paymentAdmins && !paymentMigrationAttempted) {
       // One-time migration for a project set up before payment admins
       // existed: whoever loads the app first after the update seeds
       // themselves as the sole payment admin, see firestore.rules for the
       // one-time-only guard on this.
-      migrationAttempted = true;
+      paymentMigrationAttempted = true;
       var migrateEmail = (user.email || "").toLowerCase();
       db.collection("config").doc("access").update({ paymentAdmins: [migrateEmail] }).catch(function (err) { console.error(err); });
+    }
+    if (!doc.data().siteAdmins && !siteMigrationAttempted) {
+      // Same one-time migration, for a project set up before site admins
+      // existed. Whoever loads the app first after this update becomes the
+      // sole site admin, see firestore.rules for the one-time-only guard.
+      siteMigrationAttempted = true;
+      var migrateSiteEmail = (user.email || "").toLowerCase();
+      db.collection("config").doc("access").update({ siteAdmins: [migrateSiteEmail] }).catch(function (err) { console.error(err); });
     }
     var approvedNow = accessEmails.indexOf((user.email || "").toLowerCase()) > -1;
     if (approvedNow && !isApproved) {
@@ -381,6 +397,15 @@ function startApp() {
     }
   }));
 
+  unsubscribers.push(col("emailTemplates").onSnapshot(function (snap) {
+    if (snap.empty) {
+      seedEmailTemplates();
+    } else {
+      STATE.emailTemplates = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      renderAll();
+    }
+  }));
+
   window.addEventListener("online", function () { ui.online = true; renderAll(); });
   window.addEventListener("offline", function () { ui.online = false; renderAll(); });
 }
@@ -392,6 +417,35 @@ function seedChecklist() {
     batch.set(ref, { id: ref.id, category: item.category, task: item.task, timing: item.timing, owner: "", status: "not-started", notes: "" });
   });
   batch.commit().catch(function (err) { console.error(err); });
+}
+
+var DEFAULT_EMAIL_TEMPLATES = [
+  { context: "donations", name: "Initial ask", subject: "Racing for a Cure - can you help?", body: EMAIL_TEMPLATE },
+  { context: "donations", name: "Gentle follow-up", subject: "Just checking in - Racing for a Cure", body: "Hi [Contact Name],\n\nI reached out a little while ago about donating a prize for Racing for a Cure, and wanted to gently check in. No pressure at all, I know everyone is busy.\n\nIf you're able to help, even something small would mean a lot. And if now isn't the right time, that's completely okay too, thank you for reading this far either way.\n\nWarmly,\nJenna" },
+  { context: "guests", name: "Payment follow-up", subject: "Racing for a Cure - payment follow up", body: "Hi there,\n\nJust a friendly reminder that we haven't yet received payment for your ticket(s) to Racing for a Cure.\n\n{{paymentInfo}}\n\nPayment due: {{dueDate}}\n\nThanks so much for your support, it means the world.\n\nJenna" },
+  { context: "guests", name: "Gentle nudge", subject: "Just a gentle reminder - Racing for a Cure", body: "Hi there,\n\nJust popping into your inbox with a gentle nudge about your ticket payment for Racing for a Cure. No stress if it's slipped your mind, just wanted to make sure you had the details handy.\n\n{{paymentInfo}}\n\nThank you!\nJenna" },
+  { context: "guests", name: "General update", subject: "Racing for a Cure - update", body: "Hi everyone,\n\nJust a quick update ahead of Racing for a Cure on {{eventDate}}...\n\nThanks for your support!\nJenna" }
+];
+
+function seedEmailTemplates() {
+  var batch = db.batch();
+  DEFAULT_EMAIL_TEMPLATES.forEach(function (t) {
+    var ref = col("emailTemplates").doc();
+    batch.set(ref, { id: ref.id, context: t.context, name: t.name, subject: t.subject, body: t.body });
+  });
+  batch.commit().catch(function (err) { console.error(err); });
+}
+
+function fillTemplateTokens(text) {
+  return (text || "")
+    .replace(/\{\{paymentInfo\}\}/g, STATE.settings.paymentInfo || "[Add your payment details under Overview -> Event settings]")
+    .replace(/\{\{dueDate\}\}/g, STATE.settings.paymentDueDate ? fmtDate(STATE.settings.paymentDueDate) : "")
+    .replace(/\{\{eventDate\}\}/g, fmtDate(STATE.settings.eventDate) || "")
+    .replace(/\{\{eventName\}\}/g, STATE.settings.eventName || "");
+}
+
+function templatesForContext(context) {
+  return STATE.emailTemplates.filter(function (t) { return t.context === context; });
 }
 
 /* ============================= gate screens ============================= */
@@ -554,28 +608,34 @@ function renderSettingsPanel() {
       '<div class="field"><label>Ticket goal</label><input type="number" min="1" step="1" data-settings-field="ticketGoal" value="' + esc(s.ticketGoal) + '"></div>' +
       '<div class="field" style="grid-column:1/-1"><label>Tagline</label><input data-settings-field="tagline" value="' + esc(s.tagline) + '"></div>' +
       '<div class="field" style="grid-column:1/-1"><label>Payment details for guests</label><textarea rows="3" data-settings-field="paymentInfo" placeholder="e.g. Direct transfer to BSB 000-000, Acc 00000000 (J Smith), or PayID 0400 000 000. Please use your name as the reference.">' + esc(s.paymentInfo) + "</textarea></div>" +
+      '<div class="field"><label>Payment due date</label><input type="date" data-settings-field="paymentDueDate" value="' + esc(s.paymentDueDate) + '"></div>' +
     "</div></div></details>";
 }
 
 function renderAccessPanel() {
-  var youAreAdmin = canMarkPayments();
+  var youControl = canControlAccess();
   var rows = accessEmails.map(function (email) {
     var isYou = currentUser && email === currentUser.email;
     var isAdmin = paymentAdminEmails.indexOf(email) > -1;
+    var isSite = siteAdminEmails.indexOf(email) > -1;
+    var siteBadge = isSite ? '<span class="pill rose" title="Controls who is approved and who is a payment admin">Site admin</span>' : "";
     var adminBadge = isAdmin ? '<span class="pill gold" title="Can mark guests as paid">Payment admin</span>' : "";
-    var adminToggle = youAreAdmin
+    var adminToggle = youControl
       ? '<button type="button" class="icon-btn" data-action="' + (isAdmin ? "remove-payment-admin" : "add-payment-admin") + '" data-email="' + esc(email) + '" title="' + (isAdmin ? "Remove payment admin" : "Make payment admin") + '">' + icon("money") + "</button>"
       : "";
-    return '<div class="access-row"><span class="email">' + esc(email) + "</span>" + adminBadge + adminToggle +
-      (isYou ? '<span class="you-badge">You</span>' : '<button type="button" class="icon-btn" data-action="remove-access" data-email="' + esc(email) + '" title="Remove access">' + icon("trash") + "</button>") +
+    var removeBtn = (youControl && !isYou)
+      ? '<button type="button" class="icon-btn" data-action="remove-access" data-email="' + esc(email) + '" title="Remove access">' + icon("trash") + "</button>"
+      : "";
+    return '<div class="access-row"><span class="email">' + esc(email) + "</span>" + siteBadge + adminBadge + adminToggle +
+      (isYou ? '<span class="you-badge">You</span>' : "") + removeBtn +
     "</div>";
   }).join("");
   if (!rows) rows = '<p class="muted" style="font-size:13px">No one on the list yet, which shouldn\'t be possible since you\'re signed in. Something may be misconfigured, see README.md.</p>';
 
   return '<details class="panel"><summary>' + icon("people") + ' Manage access <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
-    '<p class="muted" style="font-size:13px;margin:0 0 8px">Anyone on this list can sign in with Google and edit the event. Remove someone to cut off their access immediately, forwarding the link alone gets nobody in. The ' + icon("money") + ' icon toggles Payment admin, only payment admins can mark a guest as paid or edit an already-paid record, since that person is the one reconciling against the bank account.' + (youAreAdmin ? "" : " Only an existing payment admin can change who else is one.") + '</p>' +
+    '<p class="muted" style="font-size:13px;margin:0 0 8px">Anyone on this list can sign in with Google and use the planning pages. The ' + icon("money") + ' icon toggles Payment admin, only payment admins can mark a guest as paid or edit an already-paid record. Only the Site admin can add or remove anyone from this list, or change who is a payment admin' + (youControl ? "" : " — that\'s not you, so this list is read-only for you") + '.</p>' +
     '<div>' + rows + "</div>" +
-    '<form id="add-access-form"><input type="email" name="email" placeholder="name@email.com" required><button type="submit" class="btn sm">' + icon("plus") + " Add</button></form>" +
+    (youControl ? '<form id="add-access-form"><input type="email" name="email" placeholder="name@email.com" required><button type="submit" class="btn sm">' + icon("plus") + " Add</button></form>" : "") +
   "</div></details>";
 }
 
@@ -594,7 +654,7 @@ function renderMoneyRaised() {
 
     '<div class="kpi-grid">' +
       '<div class="kpi"><div class="kpi-label">Ticket price</div><div class="kpi-value">' + money(price) + '</div><div class="kpi-sub">per ticket, set below</div></div>' +
-      '<div class="kpi success"><div class="kpi-label">Ticket revenue (paid)</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + ' pending from invited or attending guests</div></div>' +
+      '<div class="kpi success"><div class="kpi-label">Ticket revenue (paid)</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + ' pending from guests who have registered interest or are attending</div></div>' +
       '<div class="kpi"><div class="kpi-label">Activity revenue</div><div class="kpi-value">' + money(s.activityRevenueActual) + '</div><div class="kpi-sub">from Fundraising Activities</div></div>' +
       '<div class="kpi gold"><div class="kpi-label">Manually logged</div><div class="kpi-value">' + money(s.manualFundsTotal) + '</div><div class="kpi-sub">' + STATE.manualFunds.length + ' ' + (STATE.manualFunds.length === 1 ? "entry" : "entries") + '</div></div>' +
       '<div class="kpi success"><div class="kpi-label">Total raised</div><div class="kpi-value">' + money(s.totalRaised) + '</div><div class="kpi-sub">Ticket revenue + activity revenue + manual entries</div></div>' +
@@ -664,7 +724,7 @@ function renderAttendees() {
     (canPay ? "" : '<div class="banner info">Only a payment admin can mark a guest as paid or edit an already-paid record. Ask a payment admin to change your role from Overview -> Manage access if you need it.</div>') +
 
     '<details class="panel"><summary>Public register link <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
-      '<p class="muted" style="font-size:13px;margin:0 0 8px">Share this link with anyone, no sign-in needed. It lets them register their contact details and request tickets, which land here as an Invited guest for you to follow up and mark paid.</p>' +
+      '<p class="muted" style="font-size:13px;margin:0 0 8px">Share this link with anyone, no sign-in needed. It lets them register their contact details and request tickets, which land here with Registered interest status for you to follow up and mark paid.</p>' +
       '<div class="template-box" id="register-link-box">' + esc(window.location.href.replace(/index\.html$/, "").replace(/\/$/, "")) + '/register-tickets.html</div>' +
       '<div style="margin-top:10px"><button type="button" class="btn subtle" data-action="copy-register-link">' + icon("copy") + " Copy link</button></div>" +
     "</div></details>" +
@@ -675,7 +735,7 @@ function renderAttendees() {
         '<div class="field"><label>Email</label><input name="email" type="email" placeholder="guest@email.com"></div>' +
         '<div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="04xx xxx xxx"></div>' +
         '<div class="field"><label>Tickets</label><input name="tickets" type="number" min="1" value="1"></div>' +
-        '<div class="field"><label>Status</label><select name="status"><option value="invited">Invited</option><option value="attending">Attending</option>' + (canPay ? '<option value="paid">Paid</option>' : "") + '<option value="comp">Complimentary</option></select></div>' +
+        '<div class="field"><label>Status</label><select name="status"><option value="invited">Registered interest</option><option value="attending">Attending</option>' + (canPay ? '<option value="paid">Paid</option>' : "") + '</select></div>' +
         '<div class="field"><label>Notes</label><input name="notes" placeholder="Accessibility needs, plus one, etc"></div>' +
         '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn">' + icon("plus") + " Add attendee</button></div>" +
       "</form></div></details>" +
@@ -689,14 +749,16 @@ function renderAttendees() {
     '<details class="panel"><summary>Email guests <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
       '<p class="muted" style="font-size:13px;margin:0 0 8px">Tick guests in the table below (or use a quick select here), write your message, then copy the addresses into BCC or open it straight in your own email app. There is no automatic sending, that needs a paid backend, this just preps everything so sending takes seconds.</p>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
-        '<button type="button" class="btn subtle sm" data-action="select-all-attendees">Select all visible</button>' +
-        '<button type="button" class="btn subtle sm" data-action="select-unpaid-attendees">Select unpaid</button>' +
+        '<button type="button" class="btn subtle sm" data-action="select-all-attendees">Select all guests</button>' +
+        '<button type="button" class="btn subtle sm" data-action="select-unpaid-attendees">Select not yet paid</button>' +
+        '<button type="button" class="btn subtle sm" data-action="select-paid-attendees">Select paid</button>' +
+        '<button type="button" class="btn subtle sm" data-action="select-status-attendees" data-status="invited">Select registered interest</button>' +
+        '<button type="button" class="btn subtle sm" data-action="select-status-attendees" data-status="attending">Select attending</button>' +
         '<button type="button" class="btn subtle sm" data-action="select-none-attendees">Clear selection</button>' +
         '<span class="pill rose" style="align-self:center">' + selectedCount + " selected</span>" +
       "</div>" +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
-        '<button type="button" class="btn subtle sm" data-action="email-template" data-template="payment-followup">Use payment follow-up template</button>' +
-        '<button type="button" class="btn subtle sm" data-action="email-template" data-template="general-update">Use general update template</button>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">' +
+        templatesForContext("guests").map(function (t) { return '<button type="button" class="btn subtle sm" data-action="use-template" data-template-id="' + t.id + '" data-context="guests">' + esc(t.name) + "</button>"; }).join("") +
       "</div>" +
       '<div class="form-grid">' +
         '<div class="field" style="grid-column:1/-1"><label>Subject</label><input id="email-subject" value="Racing for a Cure"></div>' +
@@ -708,14 +770,15 @@ function renderAttendees() {
       "</div>" +
     "</div></details>" +
 
+    renderTemplateManager("guests") +
+
     '<div class="search-row">' +
       '<input type="search" id="attendee-search" placeholder="Search attendees" value="' + esc(ui.attendeeSearch) + '">' +
       '<select id="attendee-filter">' +
         '<option value="all"' + (ui.attendeeFilter === "all" ? " selected" : "") + ">All statuses</option>" +
-        '<option value="invited"' + (ui.attendeeFilter === "invited" ? " selected" : "") + ">Invited</option>" +
+        '<option value="invited"' + (ui.attendeeFilter === "invited" ? " selected" : "") + ">Registered interest</option>" +
         '<option value="attending"' + (ui.attendeeFilter === "attending" ? " selected" : "") + ">Attending</option>" +
         '<option value="paid"' + (ui.attendeeFilter === "paid" ? " selected" : "") + ">Paid</option>" +
-        '<option value="comp"' + (ui.attendeeFilter === "comp" ? " selected" : "") + ">Complimentary</option>" +
       "</select>" +
     "</div>" +
 
@@ -741,6 +804,38 @@ function renderAttendeeRow(a) {
     '<td><input data-field="notes" value="' + esc(a.notes) + '"></td>' +
     '<td><button type="button" class="icon-btn" data-action="remove" title="Remove attendee">' + icon("trash") + "</button></td>" +
   "</tr>";
+}
+
+/* ============================= render: email templates ============================= */
+
+function renderTemplateManager(context) {
+  var list = templatesForContext(context);
+  var rows = list.map(function (t) { return renderTemplateRow(t, context); }).join("");
+  if (!rows) rows = '<p class="muted" style="font-size:13px">No templates yet, add your first one below.</p>';
+
+  return '<details class="panel"><summary>Manage email templates <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
+    '<p class="muted" style="font-size:13px;margin:0 0 12px">Keep as many versions as you like, different styles, different tones, gentle nudges for later follow-ups. Edit any field below and it saves automatically. You can use ' +
+    '<code>{{paymentInfo}}</code>, <code>{{dueDate}}</code>, <code>{{eventDate}}</code> and <code>{{eventName}}</code> in a message and they will be filled in with the live values whenever you click a template above.</p>' +
+    '<div style="display:flex;flex-direction:column;gap:12px">' + rows + "</div>" +
+    '<form class="add-template-form form-grid" data-context="' + context + '" style="margin-top:14px">' +
+      '<div class="field"><label>Template name *</label><input name="name" required placeholder="e.g. Third reminder"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Subject</label><input name="subject" placeholder="Email subject"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Message</label><textarea name="body" rows="4" placeholder="Write your template here"></textarea></div>' +
+      '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn sm">' + icon("plus") + " Add template</button></div>" +
+    "</form>" +
+  "</div></details>";
+}
+
+function renderTemplateRow(t, context) {
+  return '<div class="cat-block" data-collection="emailTemplates" data-id="' + t.id + '" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+      '<input data-field="name" value="' + esc(t.name) + '" placeholder="Template name" style="font-weight:800;flex:1;min-width:140px">' +
+      '<button type="button" class="btn sm" data-action="use-template" data-template-id="' + t.id + '" data-context="' + context + '">Use this one</button>' +
+      '<button type="button" class="icon-btn" data-action="remove" title="Delete template">' + icon("trash") + "</button>" +
+    "</div>" +
+    '<input data-field="subject" value="' + esc(t.subject) + '" placeholder="Subject">' +
+    '<textarea data-field="body" rows="4" placeholder="Message">' + esc(t.body) + "</textarea>" +
+  "</div>";
 }
 
 /* ============================= render: donations ============================= */
@@ -771,12 +866,18 @@ function renderDonations() {
           "<ul style=\"margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-soft);display:flex;flex-direction:column;gap:6px\">" + DONATION_TIPS.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" +
         "</div>" +
         '<div>' +
-          '<div class="eyebrow" style="margin-bottom:8px">Copy and send email</div>' +
-          '<div class="template-box" id="email-template-box">' + esc(EMAIL_TEMPLATE) + "</div>" +
-          '<div style="margin-top:10px"><button type="button" class="btn subtle" data-action="copy-template">' + icon("copy") + " Copy template</button></div>" +
+          '<div class="eyebrow" style="margin-bottom:8px">Compose your ask</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
+            templatesForContext("donations").map(function (t) { return '<button type="button" class="btn subtle sm" data-action="use-template" data-template-id="' + t.id + '" data-context="donations">' + esc(t.name) + "</button>"; }).join("") +
+          "</div>" +
+          '<div class="field"><label>Subject</label><input id="donation-email-subject" placeholder="Email subject"></div>' +
+          '<div class="field" style="margin-top:8px"><label>Message</label><textarea id="donation-email-body" rows="8" placeholder="Pick a template above, or write your own"></textarea></div>' +
+          '<div style="margin-top:10px"><button type="button" class="btn subtle" data-action="copy-donation-email">' + icon("copy") + " Copy message</button></div>" +
         "</div>" +
       "</div>" +
     "</div>" +
+
+    renderTemplateManager("donations") +
 
     '<details class="panel" open><summary>Log a donation or prize <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
       '<form id="add-donation-form" class="form-grid">' +
@@ -971,7 +1072,7 @@ function parseBulkAttendees(text) {
     var tickets = parseInt(parts[2], 10);
     if (!tickets || tickets < 1) tickets = 1;
     var statusRaw = (parts[3] || "").toLowerCase();
-    var status = statusRaw === "paid" ? "paid" : (statusRaw === "comp" || statusRaw === "complimentary" ? "comp" : (statusRaw === "attending" ? "attending" : "invited"));
+    var status = statusRaw === "paid" ? "paid" : (statusRaw === "attending" ? "attending" : "invited");
     out.push({
       name: name, email: email, phone: "", tickets: tickets, status: status,
       amountPaid: status === "paid" ? tickets * (Number(STATE.settings.ticketPrice) || 0) : 0,
@@ -1011,13 +1112,27 @@ function exportAttendeesCsv() {
   toast("Attendee list downloaded.");
 }
 
-function copyTemplate() {
-  var text = EMAIL_TEMPLATE;
+function copyDonationEmail() {
+  var bodyEl = document.getElementById("donation-email-body");
+  var text = bodyEl ? bodyEl.value : "";
+  if (!text) { toast("Pick a template above, or write a message first."); return; }
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function () { toast("Template copied. Paste it into your email."); }).catch(function () { toast("Could not copy automatically, please select the text and copy it."); });
+    navigator.clipboard.writeText(text).then(function () { toast("Message copied. Paste it into your email."); }).catch(function () { toast("Could not copy automatically, please select the text and copy it."); });
   } else {
-    toast("Please select the template text and copy it manually.");
+    toast("Please select the message text and copy it manually.");
   }
+}
+
+function useEmailTemplate(templateId, context) {
+  var t = STATE.emailTemplates.filter(function (x) { return x.id === templateId; })[0];
+  if (!t) return;
+  var subjectId = context === "donations" ? "donation-email-subject" : "email-subject";
+  var bodyId = context === "donations" ? "donation-email-body" : "email-body";
+  var subjectEl = document.getElementById(subjectId);
+  var bodyEl = document.getElementById(bodyId);
+  if (subjectEl) subjectEl.value = fillTemplateTokens(t.subject);
+  if (bodyEl) bodyEl.value = fillTemplateTokens(t.body);
+  toast('"' + t.name + '" loaded into your message.');
 }
 
 function copyRegisterLink() {
@@ -1030,31 +1145,6 @@ function copyRegisterLink() {
   }
 }
 
-var EMAIL_TEMPLATES = {
-  "payment-followup": {
-    subject: "Racing for a Cure - payment follow up",
-    body: function () {
-      return "Hi there,\n\nJust a friendly reminder that we haven't yet received payment for your ticket(s) to Racing for a Cure. If you're able to send this through when you get a chance it would really help as we finalise numbers.\n\n" +
-        (STATE.settings.paymentInfo || "[Add your payment details under Overview -> Event settings so they show up here]") +
-        "\n\nThanks so much for your support, it means the world.\n\nJenna";
-    }
-  },
-  "general-update": {
-    subject: "Racing for a Cure - update",
-    body: function () {
-      return "Hi everyone,\n\nJust a quick update ahead of Racing for a Cure on " + fmtDate(STATE.settings.eventDate) + "...\n\nThanks for your support!\n\nJenna";
-    }
-  }
-};
-
-function applyEmailTemplate(key) {
-  var t = EMAIL_TEMPLATES[key];
-  if (!t) return;
-  var subjectEl = document.getElementById("email-subject");
-  var bodyEl = document.getElementById("email-body");
-  if (subjectEl) subjectEl.value = t.subject;
-  if (bodyEl) bodyEl.value = t.body();
-}
 
 function selectedAttendeeEmails() {
   return STATE.attendees.filter(function (a) { return ui.emailSelected[a.id] && a.email; }).map(function (a) { return a.email; });
@@ -1140,12 +1230,15 @@ function onRootClick(e) {
     return;
   }
 
-  if (e.target.closest('[data-action="copy-template"]')) { copyTemplate(); return; }
+  if (e.target.closest('[data-action="copy-donation-email"]')) { copyDonationEmail(); return; }
+  var useTplBtn = e.target.closest('[data-action="use-template"]');
+  if (useTplBtn) { useEmailTemplate(useTplBtn.getAttribute("data-template-id"), useTplBtn.getAttribute("data-context")); return; }
   if (e.target.closest('[data-action="export-csv"]')) { exportAttendeesCsv(); return; }
   if (e.target.closest('[data-action="copy-register-link"]')) { copyRegisterLink(); return; }
 
   if (e.target.closest('[data-action="select-all-attendees"]')) {
-    filteredAttendees().forEach(function (a) { ui.emailSelected[a.id] = true; });
+    ui.emailSelected = {};
+    STATE.attendees.forEach(function (a) { ui.emailSelected[a.id] = true; });
     renderAttendeesInPlace();
     return;
   }
@@ -1155,13 +1248,25 @@ function onRootClick(e) {
     renderAttendeesInPlace();
     return;
   }
+  if (e.target.closest('[data-action="select-paid-attendees"]')) {
+    ui.emailSelected = {};
+    STATE.attendees.forEach(function (a) { if (a.status === "paid") ui.emailSelected[a.id] = true; });
+    renderAttendeesInPlace();
+    return;
+  }
+  var statusSelectBtn = e.target.closest('[data-action="select-status-attendees"]');
+  if (statusSelectBtn) {
+    var wantStatus = statusSelectBtn.getAttribute("data-status");
+    ui.emailSelected = {};
+    STATE.attendees.forEach(function (a) { if (a.status === wantStatus) ui.emailSelected[a.id] = true; });
+    renderAttendeesInPlace();
+    return;
+  }
   if (e.target.closest('[data-action="select-none-attendees"]')) {
     ui.emailSelected = {};
     renderAttendeesInPlace();
     return;
   }
-  var templateBtn = e.target.closest('[data-action="email-template"]');
-  if (templateBtn) { applyEmailTemplate(templateBtn.getAttribute("data-template")); return; }
   if (e.target.closest('[data-action="copy-email-addresses"]')) { copySelectedEmails(); return; }
   if (e.target.closest('[data-action="open-email-draft"]')) { openEmailDraft(); return; }
 }
@@ -1228,6 +1333,17 @@ function renderAttendeesInPlace() {
 }
 
 function onRootSubmit(e) {
+  if (e.target.classList && e.target.classList.contains("add-template-form")) {
+    e.preventDefault();
+    var f0 = e.target;
+    var tplName = f0.name.value.trim();
+    if (!tplName) return;
+    addDoc("emailTemplates", { context: f0.getAttribute("data-context"), name: tplName, subject: f0.subject.value.trim(), body: f0.body.value });
+    toast("Template added.");
+    f0.reset();
+    return;
+  }
+
   if (e.target.id === "add-attendee-form") {
     e.preventDefault();
     var f = e.target;
