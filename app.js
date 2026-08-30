@@ -17,6 +17,7 @@ var ICONS = {
   copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
   money: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5v11M15.2 9.3c0-1.4-1.4-2.3-3.2-2.3s-3.2 1-3.2 2.3c0 3 6.4 1.5 6.4 4.4 0 1.4-1.4 2.3-3.2 2.3s-3.2-1-3.2-2.4"/></svg>',
+  mail: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
   google: '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.1 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.4 5.7c4.3-4 6.8-9.9 6.8-17.4z"/><path fill="#FBBC05" d="M10.5 19.3A14.5 14.5 0 0 0 9.5 24c0 1.7.3 3.3.9 4.8l-7.9 6.1A24 24 0 0 1 0 24c0-3.9.9-7.5 2.6-10.8l7.9 6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.4-5.7c-2.1 1.4-4.7 2.2-7.6 2.2-6.3 0-11.6-4.1-13.6-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>'
 };
 
@@ -26,7 +27,8 @@ var TABS = [
   { id: "attendees", label: "Attendees & Tickets", icon: "tickets" },
   { id: "donations", label: "Donations & Prizes", icon: "gift" },
   { id: "activities", label: "Fundraising Activities", icon: "flag" },
-  { id: "checklist", label: "Event Checklist", icon: "checklist" }
+  { id: "checklist", label: "Event Checklist", icon: "checklist" },
+  { id: "comms", label: "Email Templates", icon: "mail" }
 ];
 
 var ACTIVITY_IDEAS = [
@@ -549,6 +551,7 @@ function renderTabPanel() {
     case "donations": return renderDonations();
     case "activities": return renderActivities();
     case "checklist": return renderChecklist();
+    case "comms": return renderComms();
     default: return "";
   }
 }
@@ -757,8 +760,11 @@ function renderAttendees() {
         '<button type="button" class="btn subtle sm" data-action="select-none-attendees">Clear selection</button>' +
         '<span class="pill rose" style="align-self:center">' + selectedCount + " selected</span>" +
       "</div>" +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">' +
-        templatesForContext("guests").map(function (t) { return '<button type="button" class="btn subtle sm" data-action="use-template" data-template-id="' + t.id + '" data-context="guests">' + esc(t.name) + "</button>"; }).join("") +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center">' +
+        (templatesForContext("guests").length
+          ? templatesForContext("guests").map(function (t) { return '<button type="button" class="btn subtle sm" data-action="use-template" data-template-id="' + t.id + '" data-context="guests">' + esc(t.name) + "</button>"; }).join("")
+          : '<span class="muted" style="font-size:13px">No templates yet.</span>') +
+        '<button type="button" class="btn ghost sm" data-action="tab" data-tab="comms">' + icon("mail") + " Manage templates</button>" +
       "</div>" +
       '<div class="form-grid">' +
         '<div class="field" style="grid-column:1/-1"><label>Subject</label><input id="email-subject" value="Racing for a Cure"></div>' +
@@ -769,8 +775,6 @@ function renderAttendees() {
         '<button type="button" class="btn subtle" data-action="open-email-draft">Open in your email app</button>' +
       "</div>" +
     "</div></details>" +
-
-    renderTemplateManager("guests") +
 
     '<div class="search-row">' +
       '<input type="search" id="attendee-search" placeholder="Search attendees" value="' + esc(ui.attendeeSearch) + '">' +
@@ -808,14 +812,15 @@ function renderAttendeeRow(a) {
 
 /* ============================= render: email templates ============================= */
 
-function renderTemplateManager(context) {
+function renderTemplateManager(context, title) {
   var list = templatesForContext(context);
-  var rows = list.map(function (t) { return renderTemplateRow(t, context); }).join("");
+  var rows = list.map(function (t) { return renderTemplateRow(t); }).join("");
   if (!rows) rows = '<p class="muted" style="font-size:13px">No templates yet, add your first one below.</p>';
 
-  return '<details class="panel"><summary>Manage email templates <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
+  return '<div class="card">' +
+    '<h3 style="margin-bottom:4px">' + esc(title) + '</h3>' +
     '<p class="muted" style="font-size:13px;margin:0 0 12px">Keep as many versions as you like, different styles, different tones, gentle nudges for later follow-ups. Edit any field below and it saves automatically. You can use ' +
-    '<code>{{paymentInfo}}</code>, <code>{{dueDate}}</code>, <code>{{eventDate}}</code> and <code>{{eventName}}</code> in a message and they will be filled in with the live values whenever you click a template above.</p>' +
+    '<code>{{paymentInfo}}</code>, <code>{{dueDate}}</code>, <code>{{eventDate}}</code> and <code>{{eventName}}</code> in a message and they will be filled in with the live values when you use the template.</p>' +
     '<div style="display:flex;flex-direction:column;gap:12px">' + rows + "</div>" +
     '<form class="add-template-form form-grid" data-context="' + context + '" style="margin-top:14px">' +
       '<div class="field"><label>Template name *</label><input name="name" required placeholder="e.g. Third reminder"></div>' +
@@ -823,18 +828,27 @@ function renderTemplateManager(context) {
       '<div class="field" style="grid-column:1/-1"><label>Message</label><textarea name="body" rows="4" placeholder="Write your template here"></textarea></div>' +
       '<div class="field" style="justify-content:flex-end"><button type="submit" class="btn sm">' + icon("plus") + " Add template</button></div>" +
     "</form>" +
-  "</div></details>";
+  "</div>";
 }
 
-function renderTemplateRow(t, context) {
+function renderTemplateRow(t) {
   return '<div class="cat-block" data-collection="emailTemplates" data-id="' + t.id + '" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">' +
     '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
       '<input data-field="name" value="' + esc(t.name) + '" placeholder="Template name" style="font-weight:800;flex:1;min-width:140px">' +
-      '<button type="button" class="btn sm" data-action="use-template" data-template-id="' + t.id + '" data-context="' + context + '">Use this one</button>' +
       '<button type="button" class="icon-btn" data-action="remove" title="Delete template">' + icon("trash") + "</button>" +
     "</div>" +
     '<input data-field="subject" value="' + esc(t.subject) + '" placeholder="Subject">' +
     '<textarea data-field="body" rows="4" placeholder="Message">' + esc(t.body) + "</textarea>" +
+  "</div>";
+}
+
+/* ============================= render: comms ============================= */
+
+function renderComms() {
+  return '<div class="tab-panel">' +
+    '<div class="section-head"><div><div class="eyebrow">Email templates</div><h2>Comms &amp; templates</h2><p>Build and refine every email template here. Use them from the Donations or Attendees tab when you are ready to actually send one.</p></div></div>' +
+    renderTemplateManager("donations", "Donation ask templates") +
+    renderTemplateManager("guests", "Guest & payment templates") +
   "</div>";
 }
 
@@ -867,8 +881,11 @@ function renderDonations() {
         "</div>" +
         '<div>' +
           '<div class="eyebrow" style="margin-bottom:8px">Compose your ask</div>' +
-          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
-            templatesForContext("donations").map(function (t) { return '<button type="button" class="btn subtle sm" data-action="use-template" data-template-id="' + t.id + '" data-context="donations">' + esc(t.name) + "</button>"; }).join("") +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center">' +
+            (templatesForContext("donations").length
+              ? templatesForContext("donations").map(function (t) { return '<button type="button" class="btn subtle sm" data-action="use-template" data-template-id="' + t.id + '" data-context="donations">' + esc(t.name) + "</button>"; }).join("")
+              : '<span class="muted" style="font-size:13px">No templates yet.</span>') +
+            '<button type="button" class="btn ghost sm" data-action="tab" data-tab="comms">' + icon("mail") + " Manage templates</button>" +
           "</div>" +
           '<div class="field"><label>Subject</label><input id="donation-email-subject" placeholder="Email subject"></div>' +
           '<div class="field" style="margin-top:8px"><label>Message</label><textarea id="donation-email-body" rows="8" placeholder="Pick a template above, or write your own"></textarea></div>' +
@@ -876,8 +893,6 @@ function renderDonations() {
         "</div>" +
       "</div>" +
     "</div>" +
-
-    renderTemplateManager("donations") +
 
     '<details class="panel" open><summary>Log a donation or prize <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
       '<form id="add-donation-form" class="form-grid">' +
