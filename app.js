@@ -546,6 +546,7 @@ function renderAll() {
   var scrollY = window.scrollY;
   root.innerHTML = renderHeader() + renderBanner() + '<div class="container">' + renderTabbar() + '<div class="tab-content">' + renderTabPanel() + "</div></div>" + renderFooter();
   window.scrollTo(0, scrollY);
+  updateTabbarScrollState();
 }
 
 function renderHeader() {
@@ -572,9 +573,26 @@ function renderHeader() {
 function renderBanner() { return ""; }
 
 function renderTabbar() {
-  return '<div class="tabbar">' + TABS.map(function (t) {
-    return '<button type="button" class="tab-btn' + (ui.tab === t.id ? " active" : "") + '" data-action="tab" data-tab="' + t.id + '">' + icon(t.icon) + "<span>" + esc(t.label) + "</span></button>";
-  }).join("") + "</div>";
+  return '<div class="tabbar-wrap" id="tabbar-wrap">' +
+    '<button type="button" class="tab-scroll tab-scroll-left" data-action="tab-scroll" data-dir="-1" tabindex="-1" aria-hidden="true">' + icon("chev") + "</button>" +
+    '<div class="tabbar-scroll-area">' +
+      '<div class="tab-fade tab-fade-left" aria-hidden="true"></div>' +
+      '<div class="tabbar" id="tabbar">' + TABS.map(function (t) {
+        return '<button type="button" class="tab-btn' + (ui.tab === t.id ? " active" : "") + '" data-action="tab" data-tab="' + t.id + '">' + icon(t.icon) + "<span>" + esc(t.label) + "</span></button>";
+      }).join("") + "</div>" +
+      '<div class="tab-fade tab-fade-right" aria-hidden="true"></div>' +
+    "</div>" +
+    '<button type="button" class="tab-scroll tab-scroll-right" data-action="tab-scroll" data-dir="1" tabindex="-1" aria-hidden="true">' + icon("chev") + "</button>" +
+  "</div>";
+}
+
+function updateTabbarScrollState() {
+  var wrap = document.getElementById("tabbar-wrap");
+  var bar = document.getElementById("tabbar");
+  if (!wrap || !bar) return;
+  var max = bar.scrollWidth - bar.clientWidth;
+  wrap.classList.toggle("can-scroll-left", bar.scrollLeft > 4);
+  wrap.classList.toggle("can-scroll-right", bar.scrollLeft < max - 4);
 }
 
 function renderFooter() {
@@ -616,12 +634,12 @@ function renderOverview() {
     '<div class="section-head"><div><div class="eyebrow">Event overview</div><h2>' + fmtDate(STATE.settings.eventDate) + "</h2><p>Track ticket sales, fundraising and planning progress for " + esc(STATE.settings.eventName) + " in one place. Everyone who's signed in sees the same live numbers.</p></div></div>" +
 
     '<div class="kpi-grid">' +
-      '<div class="kpi"><div class="kpi-label">Tickets sold</div><div class="kpi-value">' + s.ticketsSold + ' <span class="muted" style="font-size:15px;font-weight:700">/ ' + goal + '</span></div><div class="kpi-sub">' + attendeeCount + " " + (attendeeCount === 1 ? "attendee" : "attendees") + ' logged</div><div class="bar-track"><div class="bar-fill" style="width:' + ticketPct + '%"></div></div></div>' +
-      '<div class="kpi success"><div class="kpi-label">Ticket revenue</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + " pending, at " + money(price) + " per ticket</div></div>" +
-      '<div class="kpi gold"><div class="kpi-label">Prize donations secured</div><div class="kpi-value">' + s.donationsConfirmedCount + '</div><div class="kpi-sub">' + money(s.donationValueSecured) + " in donated value</div></div>" +
-      '<div class="kpi"><div class="kpi-label">Fundraising activities</div><div class="kpi-value">' + money(s.activityRevenueActual) + '</div><div class="kpi-sub">' + money(s.activityRevenueTarget) + " targeted across " + STATE.activities.length + " " + (STATE.activities.length === 1 ? "activity" : "activities") + '</div></div>' +
-      '<div class="kpi success"><div class="kpi-label">Total raised so far</div><div class="kpi-value">' + money(s.totalRaised) + '</div><div class="kpi-sub">Tickets paid plus activity income</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Checklist progress</div><div class="kpi-value">' + checklistPct + '%</div><div class="kpi-sub">' + s.checklistDone + " of " + s.checklistTotal + ' tasks done</div><div class="bar-track"><div class="bar-fill" style="width:' + checklistPct + '%"></div></div></div>' +
+      '<button type="button" class="kpi kpi-link" data-action="tab" data-tab="attendees" aria-label="Tickets sold, go to Attendees & Tickets"><div class="kpi-label">Tickets sold</div><div class="kpi-value">' + s.ticketsSold + ' <span class="muted" style="font-size:15px;font-weight:700">/ ' + goal + '</span></div><div class="kpi-sub">' + attendeeCount + " " + (attendeeCount === 1 ? "attendee" : "attendees") + ' logged</div><div class="bar-track"><div class="bar-fill" style="width:' + ticketPct + '%"></div></div></button>' +
+      '<button type="button" class="kpi success kpi-link" data-action="tab" data-tab="attendees" aria-label="Ticket revenue, go to Attendees & Tickets"><div class="kpi-label">Ticket revenue</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + " pending, at " + money(price) + " per ticket</div></button>" +
+      '<button type="button" class="kpi gold kpi-link" data-action="tab" data-tab="donations" aria-label="Prize donations secured, go to Donations & Prizes"><div class="kpi-label">Prize donations secured</div><div class="kpi-value">' + s.donationsConfirmedCount + '</div><div class="kpi-sub">' + money(s.donationValueSecured) + " in donated value</div></button>" +
+      '<button type="button" class="kpi kpi-link" data-action="tab" data-tab="activities" aria-label="Fundraising activities, go to Fundraising Activities"><div class="kpi-label">Fundraising activities</div><div class="kpi-value">' + money(s.activityRevenueActual) + '</div><div class="kpi-sub">' + money(s.activityRevenueTarget) + " targeted across " + STATE.activities.length + " " + (STATE.activities.length === 1 ? "activity" : "activities") + '</div></button>' +
+      '<button type="button" class="kpi success kpi-link" data-action="tab" data-tab="money" aria-label="Total raised so far, go to Money Raised"><div class="kpi-label">Total raised so far</div><div class="kpi-value">' + money(s.totalRaised) + '</div><div class="kpi-sub">Tickets paid plus activity income</div></button>' +
+      '<button type="button" class="kpi kpi-link" data-action="tab" data-tab="checklist" aria-label="Checklist progress, go to Event Checklist"><div class="kpi-label">Checklist progress</div><div class="kpi-value">' + checklistPct + '%</div><div class="kpi-sub">' + s.checklistDone + " of " + s.checklistTotal + ' tasks done</div><div class="bar-track"><div class="bar-fill" style="width:' + checklistPct + '%"></div></div></button>' +
     "</div>" +
 
     '<div class="two-col">' +
@@ -677,7 +695,7 @@ function renderAccessPanel() {
   return '<details class="panel"><summary>' + icon("people") + ' Manage access <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
     '<p class="muted" style="font-size:13px;margin:0 0 8px">Anyone on this list can sign in with Google and use the planning pages. The ' + icon("money") + ' icon toggles Payment admin, only payment admins can mark a guest as paid or edit an already-paid record. Only the Site admin can add or remove anyone from this list, or change who is a payment admin' + (youControl ? "" : " — that\'s not you, so this list is read-only for you") + '.</p>' +
     '<div>' + rows + "</div>" +
-    (youControl ? '<form id="add-access-form"><input type="email" name="email" placeholder="name@email.com" required><button type="submit" class="btn sm">' + icon("plus") + " Add</button></form>" : "") +
+    (youControl ? '<form id="add-access-form" novalidate><input type="email" name="email" placeholder="name@email.com" required><button type="submit" class="btn sm">' + icon("plus") + " Add</button></form>" : "") +
   "</div></details>";
 }
 
@@ -696,8 +714,8 @@ function renderMoneyRaised() {
 
     '<div class="kpi-grid">' +
       '<div class="kpi"><div class="kpi-label">Ticket price</div><div class="kpi-value">' + money(price) + '</div><div class="kpi-sub">per ticket, set below</div></div>' +
-      '<div class="kpi success"><div class="kpi-label">Ticket revenue (paid)</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + ' pending from guests who have registered interest</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Activity revenue</div><div class="kpi-value">' + money(s.activityRevenueActual) + '</div><div class="kpi-sub">from Fundraising Activities</div></div>' +
+      '<button type="button" class="kpi success kpi-link" data-action="tab" data-tab="attendees" aria-label="Ticket revenue paid, go to Attendees & Tickets"><div class="kpi-label">Ticket revenue (paid)</div><div class="kpi-value">' + money(s.revenuePaid) + '</div><div class="kpi-sub">' + money(s.revenuePending) + ' pending from guests who have registered interest</div></button>' +
+      '<button type="button" class="kpi kpi-link" data-action="tab" data-tab="activities" aria-label="Activity revenue, go to Fundraising Activities"><div class="kpi-label">Activity revenue</div><div class="kpi-value">' + money(s.activityRevenueActual) + '</div><div class="kpi-sub">from Fundraising Activities</div></button>' +
       '<div class="kpi gold"><div class="kpi-label">Manually logged</div><div class="kpi-value">' + money(s.manualFundsTotal) + '</div><div class="kpi-sub">' + STATE.manualFunds.length + ' ' + (STATE.manualFunds.length === 1 ? "entry" : "entries") + '</div></div>' +
       '<div class="kpi success"><div class="kpi-label">Total raised</div><div class="kpi-value">' + money(s.totalRaised) + '</div><div class="kpi-sub">Ticket revenue + activity revenue + manual entries</div></div>' +
     "</div>" +
@@ -710,7 +728,7 @@ function renderMoneyRaised() {
 
     '<details class="panel" open><summary>Log money raised <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
       '<p class="muted" style="font-size:13px;margin:0 0 8px">Use this for cash collected on the day, bank transfers, or any lump sum that is not already tied to a specific attendee or activity.</p>' +
-      '<form id="add-manual-fund-form" class="form-grid">' +
+      '<form id="add-manual-fund-form" class="form-grid" novalidate>' +
         '<div class="field"><label>Source *</label><input name="source" required placeholder="e.g. Cash tin, bank transfer"></div>' +
         '<div class="field"><label>Amount ($)</label><input name="amount" type="number" min="0" step="0.01" value="0"></div>' +
         '<div class="field"><label>Date</label><input name="dateAdded" type="date" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
@@ -772,7 +790,7 @@ function renderAttendees() {
     "</div></details>" +
 
     '<details class="panel" open><summary>Add a single attendee <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
-      '<form id="add-attendee-form" class="form-grid">' +
+      '<form id="add-attendee-form" class="form-grid" novalidate>' +
         '<div class="field"><label>Name *</label><input name="name" required placeholder="Guest name"></div>' +
         '<div class="field"><label>Email</label><input name="email" type="email" placeholder="guest@email.com"></div>' +
         '<div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="04xx xxx xxx"></div>' +
@@ -859,7 +877,7 @@ function renderRunsheet() {
     '<div class="section-head"><div><div class="eyebrow">Day-of run sheet</div><h2>The schedule for race day</h2><p>A chronological plan for the day itself: what happens when, and who is running it. Tick items off live as the day goes.</p></div></div>' +
 
     '<details class="panel" open><summary>Add a run sheet item <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
-      '<form id="add-runsheet-form" class="form-grid">' +
+      '<form id="add-runsheet-form" class="form-grid" novalidate>' +
         '<div class="field"><label>Time</label><input name="time" type="time" required></div>' +
         '<div class="field" style="grid-column:1/-1"><label>Activity *</label><input name="activity" required placeholder="What happens at this time"></div>' +
         '<div class="field"><label>Assigned to</label><input name="assignedTo" placeholder="Who is running it"></div>' +
@@ -898,7 +916,7 @@ function renderTemplateManager(context, title) {
     '<p class="muted" style="font-size:13px;margin:0 0 12px">Keep as many versions as you like, different styles, different tones, gentle nudges for later follow-ups. Edit any field below and it saves automatically. You can use ' +
     '<code>{{paymentInfo}}</code>, <code>{{dueDate}}</code>, <code>{{eventDate}}</code> and <code>{{eventName}}</code> in a message and they will be filled in with the live values when you use the template.</p>' +
     '<div style="display:flex;flex-direction:column;gap:12px">' + rows + "</div>" +
-    '<form class="add-template-form form-grid" data-context="' + context + '" style="margin-top:14px">' +
+    '<form class="add-template-form form-grid" data-context="' + context + '" style="margin-top:14px" novalidate>' +
       '<div class="field"><label>Template name *</label><input name="name" required placeholder="e.g. Third reminder"></div>' +
       '<div class="field" style="grid-column:1/-1"><label>Subject</label><input name="subject" placeholder="Email subject"></div>' +
       '<div class="field" style="grid-column:1/-1"><label>Message</label><textarea name="body" rows="4" placeholder="Write your template here"></textarea></div>' +
@@ -971,7 +989,7 @@ function renderDonations() {
     "</div>" +
 
     '<details class="panel" open><summary>Log a donation or prize <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
-      '<form id="add-donation-form" class="form-grid">' +
+      '<form id="add-donation-form" class="form-grid" novalidate>' +
         '<div class="field"><label>Business or donor *</label><input name="business" required placeholder="Business name"></div>' +
         '<div class="field"><label>Contact</label><input name="contact" placeholder="Contact person"></div>' +
         '<div class="field"><label>Item offered</label><input name="item" placeholder="What they are donating"></div>' +
@@ -1033,7 +1051,7 @@ function renderActivities() {
     '<div class="idea-grid">' + ideaCards + "</div>" +
 
     '<details class="panel" open><summary>Add a custom activity <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
-      '<form id="add-activity-form" class="form-grid">' +
+      '<form id="add-activity-form" class="form-grid" novalidate>' +
         '<div class="field"><label>Activity name *</label><input name="name" required placeholder="e.g. Guess the jockey silks"></div>' +
         '<div class="field"><label>Time slot</label><input name="timeSlot" placeholder="e.g. Race 3, 2:30pm"></div>' +
         '<div class="field"><label>Owner</label><input name="owner" placeholder="Who is running it"></div>' +
@@ -1122,7 +1140,7 @@ function renderChecklist() {
     '<div class="bar-track"><div class="bar-fill success" style="width:' + pctAll + '%"></div></div>' +
 
     '<details class="panel"><summary>Add a task <span>' + icon("chev") + '</span></summary><div class="panel-body">' +
-      '<form id="add-task-form" class="form-grid">' +
+      '<form id="add-task-form" class="form-grid" novalidate>' +
         '<div class="field"><label>Task *</label><input name="task" required placeholder="What needs to happen"></div>' +
         '<div class="field"><label>Date due</label><input name="dueDate" type="date"></div>' +
         '<div class="field"><label>Owner</label><input name="owner" placeholder="Who is doing it"></div>' +
@@ -1272,6 +1290,13 @@ function openEmailDraft() {
 function onRootClick(e) {
   var tabBtn = e.target.closest('[data-action="tab"]');
   if (tabBtn) { ui.tab = tabBtn.getAttribute("data-tab"); renderAll(); return; }
+
+  var scrollBtn = e.target.closest('[data-action="tab-scroll"]');
+  if (scrollBtn) {
+    var bar = document.getElementById("tabbar");
+    if (bar) bar.scrollBy({ left: Number(scrollBtn.getAttribute("data-dir")) * 220, behavior: "smooth" });
+    return;
+  }
 
   var signOutBtn = e.target.closest('[data-action="sign-out"]');
   if (signOutBtn) { signOutNow(); return; }
@@ -1425,7 +1450,7 @@ function onRootSubmit(e) {
     e.preventDefault();
     var f0 = e.target;
     var tplName = f0.name.value.trim();
-    if (!tplName) return;
+    if (!tplName) { toast("Give the template a name first, so you can find it again later."); f0.name.focus(); return; }
     addDoc("emailTemplates", { context: f0.getAttribute("data-context"), name: tplName, subject: f0.subject.value.trim(), body: f0.body.value });
     toast("Template added.");
     f0.reset();
@@ -1436,7 +1461,7 @@ function onRootSubmit(e) {
     e.preventDefault();
     var f = e.target;
     var name = f.name.value.trim();
-    if (!name) return;
+    if (!name) { toast("Enter the guest's name first."); f.name.focus(); return; }
     var tickets = Number(f.tickets.value) || 1;
     var status = f.status.value;
     addDoc("attendees", {
@@ -1453,7 +1478,7 @@ function onRootSubmit(e) {
     e.preventDefault();
     var f2 = e.target;
     var business = f2.business.value.trim();
-    if (!business) return;
+    if (!business) { toast("Enter a business or donor name first."); f2.business.focus(); return; }
     addDoc("donations", { business: business, contact: f2.contact.value.trim(), item: f2.item.value.trim(), value: Number(f2.value.value) || 0, status: f2.status.value, thanked: false, notes: "" });
     toast(business + " added to your donation tracker.");
     f2.reset();
@@ -1464,7 +1489,7 @@ function onRootSubmit(e) {
     e.preventDefault();
     var f6 = e.target;
     var source = f6.source.value.trim();
-    if (!source) return;
+    if (!source) { toast("Enter where the money came from first."); f6.source.focus(); return; }
     addDoc("manualFunds", { source: source, amount: Number(f6.amount.value) || 0, dateAdded: f6.dateAdded.value || new Date().toISOString().slice(0, 10), notes: f6.notes.value.trim() });
     toast(source + " added.");
     f6.reset();
@@ -1475,7 +1500,7 @@ function onRootSubmit(e) {
     e.preventDefault();
     var f3 = e.target;
     var aname = f3.name.value.trim();
-    if (!aname) return;
+    if (!aname) { toast("Give the activity a name first."); f3.name.focus(); return; }
     addDoc("activities", { ideaId: null, name: aname, timeSlot: f3.timeSlot.value.trim(), owner: f3.owner.value.trim(), status: "planning", targetRevenue: Number(f3.targetRevenue.value) || 0, actualRevenue: 0, notes: "" });
     toast(aname + " added to your fundraising plan.");
     f3.reset();
@@ -1486,7 +1511,7 @@ function onRootSubmit(e) {
     e.preventDefault();
     var f4 = e.target;
     var task = f4.task.value.trim();
-    if (!task) return;
+    if (!task) { toast("Enter what needs to happen first."); f4.task.focus(); return; }
     addDoc("checklist", { category: f4.category.value, task: task, owner: f4.owner.value.trim(), dueDate: f4.dueDate.value, status: "not-started", notes: "" });
     toast("Task added.");
     f4.reset();
@@ -1497,7 +1522,7 @@ function onRootSubmit(e) {
     e.preventDefault();
     var f7 = e.target;
     var activity = f7.activity.value.trim();
-    if (!activity) return;
+    if (!activity) { toast("Enter what's happening at this time first."); f7.activity.focus(); return; }
     addDoc("runsheet", { time: f7.time.value, activity: activity, assignedTo: f7.assignedTo.value.trim(), notes: f7.notes.value.trim(), status: "not-started" });
     toast("Added to the run sheet.");
     f7.reset();
@@ -1511,6 +1536,57 @@ function onRootSubmit(e) {
     f5.reset();
   }
 }
+
+/* ============================= tab bar: mouse-wheel & drag scrolling ============================= */
+/* Desktop has no touch swipe, so the tab bar needs its own way to scroll
+   sideways with a normal mouse: a vertical wheel is redirected to
+   horizontal scroll, and click-and-drag works like a touch swipe. Touch
+   devices are untouched, they already scroll natively. */
+
+document.addEventListener("wheel", function (e) {
+  var bar = e.target.closest && e.target.closest("#tabbar");
+  if (!bar) return;
+  if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // already a horizontal gesture, let the browser handle it
+  var max = bar.scrollWidth - bar.clientWidth;
+  if (max <= 0) return;
+  e.preventDefault();
+  bar.scrollLeft += e.deltaY;
+}, { passive: false });
+
+var tabDrag = null;
+document.addEventListener("pointerdown", function (e) {
+  var bar = e.target.closest && e.target.closest("#tabbar");
+  if (!bar || e.pointerType !== "mouse" || e.button !== 0) return;
+  tabDrag = { bar: bar, startX: e.clientX, startScroll: bar.scrollLeft, moved: 0 };
+});
+document.addEventListener("pointermove", function (e) {
+  if (!tabDrag) return;
+  var dx = e.clientX - tabDrag.startX;
+  tabDrag.moved = Math.max(tabDrag.moved, Math.abs(dx));
+  if (Math.abs(dx) > 3) {
+    tabDrag.bar.classList.add("dragging");
+    tabDrag.bar.scrollLeft = tabDrag.startScroll - dx;
+  }
+});
+function endTabDrag() {
+  if (!tabDrag) return;
+  var bar = tabDrag.bar, moved = tabDrag.moved;
+  bar.classList.remove("dragging");
+  if (moved > 3) {
+    // that was a drag, not a tap: swallow the click it's about to fire so it
+    // doesn't also switch tabs
+    var suppress = function (ce) { ce.stopPropagation(); ce.preventDefault(); bar.removeEventListener("click", suppress, true); };
+    bar.addEventListener("click", suppress, true);
+  }
+  tabDrag = null;
+}
+document.addEventListener("pointerup", endTabDrag);
+document.addEventListener("pointercancel", endTabDrag);
+
+document.addEventListener("scroll", function (e) {
+  if (e.target && e.target.id === "tabbar") updateTabbarScrollState();
+}, true);
+window.addEventListener("resize", updateTabbarScrollState);
 
 /* ============================= init ============================= */
 
